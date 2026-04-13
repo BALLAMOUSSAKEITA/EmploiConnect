@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 import os
 
 from app.database import engine, Base
@@ -11,10 +12,43 @@ from app.database import SessionLocal
 
 Base.metadata.create_all(bind=engine)
 
+
+def seed_admin():
+    db = SessionLocal()
+    try:
+        from app.models import User as UserModel, UserRole
+        admin = db.query(UserModel).filter(UserModel.email == "admin@emploiconnect.gn").first()
+        if not admin:
+            admin = UserModel(
+                email="admin@emploiconnect.gn",
+                full_name="Administrateur EmploiConnect",
+                hashed_password=get_password_hash("Admin@2024"),
+                role=UserRole.admin,
+                is_active=True
+            )
+            db.add(admin)
+            db.commit()
+            print("✅ Compte admin créé: admin@emploiconnect.gn / Admin@2024")
+        else:
+            print("ℹ️  Compte admin déjà existant")
+    except Exception as e:
+        print(f"❌ Erreur seed admin: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    seed_admin()
+    yield
+
+
 app = FastAPI(
     title="EmploiConnect - API",
     description="Plateforme de recrutement de talents en Guinée",
     version="1.0.0",
+    lifespan=lifespan,
 )
 
 ALLOWED_ORIGINS = os.getenv(
@@ -40,30 +74,6 @@ app.include_router(candidates.router, prefix="/api")
 app.include_router(recruitment.router, prefix="/api")
 app.include_router(dashboard.router, prefix="/api")
 
-
-def seed_admin():
-    db = SessionLocal()
-    try:
-        from app.models import User as UserModel, UserRole
-        admin = db.query(UserModel).filter(UserModel.email == "admin@emploiconnect.gn").first()
-        if not admin:
-            admin = UserModel(
-                email="admin@emploiconnect.gn",
-                full_name="Administrateur EmploiConnect",
-                hashed_password=get_password_hash("Admin@2024"),
-                role=UserRole.admin,
-                is_active=True
-            )
-            db.add(admin)
-            db.commit()
-            print("✅ Compte admin créé: admin@emploiconnect.gn / Admin@2024")
-    finally:
-        db.close()
-
-
-@app.on_event("startup")
-async def startup():
-    seed_admin()
 
 
 @app.get("/")
