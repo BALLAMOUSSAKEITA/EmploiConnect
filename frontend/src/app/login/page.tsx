@@ -14,10 +14,10 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const stats = [
-  { label: "Entreprises partenaires", value: "120+", icon: Building2, color: "text-blue-400" },
-  { label: "Talents recrutés", value: "2 400+", icon: Users, color: "text-violet-400" },
-  { label: "Offres publiées", value: "850+", icon: Briefcase, color: "text-emerald-400" },
-  { label: "Taux de placement", value: "94%", icon: TrendingUp, color: "text-orange-400" },
+  { label: "Entreprises partenaires", value: "0", icon: Building2, color: "text-blue-400" },
+  { label: "Talents recrutés", value: "0", icon: Users, color: "text-violet-400" },
+  { label: "Offres publiées", value: "0", icon: Briefcase, color: "text-emerald-400" },
+  { label: "Taux de placement", value: "0", icon: TrendingUp, color: "text-orange-400" },
 ];
 
 const features = [
