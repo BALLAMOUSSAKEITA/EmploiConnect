@@ -1,0 +1,66 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+import os
+
+from app.database import engine, Base
+from app.models import User, Company, JobPost, Candidate, CVFile, Application, Interview
+from app.routers import auth, companies, jobs, candidates, recruitment, dashboard
+from app.auth.jwt import get_password_hash
+from app.database import SessionLocal
+
+Base.metadata.create_all(bind=engine)
+
+app = FastAPI(
+    title="GestRH Guinée - API",
+    description="Plateforme de gestion RH et recrutement de talents en Guinée",
+    version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:3000", "http://127.0.0.1:3000"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+os.makedirs("uploads/cvs", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
+
+app.include_router(auth.router, prefix="/api")
+app.include_router(companies.router, prefix="/api")
+app.include_router(jobs.router, prefix="/api")
+app.include_router(candidates.router, prefix="/api")
+app.include_router(recruitment.router, prefix="/api")
+app.include_router(dashboard.router, prefix="/api")
+
+
+def seed_admin():
+    db = SessionLocal()
+    try:
+        from app.models import User as UserModel, UserRole
+        admin = db.query(UserModel).filter(UserModel.email == "admin@gestrh.gn").first()
+        if not admin:
+            admin = UserModel(
+                email="admin@gestrh.gn",
+                full_name="Administrateur GestRH",
+                hashed_password=get_password_hash("Admin@2024"),
+                role=UserRole.admin,
+                is_active=True
+            )
+            db.add(admin)
+            db.commit()
+            print("✅ Compte admin créé: admin@gestrh.gn / Admin@2024")
+    finally:
+        db.close()
+
+
+@app.on_event("startup")
+async def startup():
+    seed_admin()
+
+
+@app.get("/")
+def root():
+    return {"message": "GestRH Guinée API - v1.0.0", "docs": "/docs"}
