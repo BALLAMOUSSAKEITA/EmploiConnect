@@ -260,8 +260,7 @@ export default function OffresPage() {
             <Briefcase className="w-8 h-8 text-indigo-400" />
           </div>
           <h3 className="text-slate-700 font-semibold mb-1">Aucune offre trouvée</h3>
-          <p className="text-slate-400 text-sm mb-4">Créez votre première offre pour commencer le recrutement</p>
-          <Button onClick={() => setShowForm(true)}><Plus className="w-4 h-4" />Créer une offre</Button>
+          <p className="text-slate-400 text-sm">Créez votre première offre pour commencer le recrutement</p>
         </div>
       ) : viewMode === "grid" ? (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 stagger">

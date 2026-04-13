@@ -117,8 +117,7 @@ export default function CandidatsPage() {
             </svg>
           </div>
           <h3 className="text-slate-700 font-semibold mb-1">Aucun candidat</h3>
-          <p className="text-slate-400 text-sm mb-4">Commencez à constituer votre vivier de talents</p>
-          <Button onClick={() => setShowForm(true)}><Plus className="w-4 h-4" />Ajouter un candidat</Button>
+          <p className="text-slate-400 text-sm">Commencez à constituer votre vivier de talents</p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 stagger">

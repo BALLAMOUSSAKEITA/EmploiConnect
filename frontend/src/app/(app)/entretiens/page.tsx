@@ -83,8 +83,7 @@ export default function EntretiensPage() {
             <Calendar className="w-8 h-8 text-orange-400" />
           </div>
           <h3 className="text-slate-700 font-semibold mb-1">Aucun entretien planifié</h3>
-          <p className="text-slate-400 text-sm mb-4">Planifiez des entretiens avec vos candidats présélectionnés</p>
-          <Button onClick={() => setShowForm(true)}><Plus className="w-4 h-4" />Planifier un entretien</Button>
+          <p className="text-slate-400 text-sm">Planifiez des entretiens avec vos candidats présélectionnés</p>
         </div>
       ) : (
         <div className="space-y-6">
