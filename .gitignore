@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyc
+.venv/
+venv/
+env/
+*.egg-info/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+
+# Env files
+.env
+.env.local
+*.env
+
+# DB
+*.db
+*.sqlite3
+
+# Uploads
+backend/uploads/cvs/*.pdf
+backend/uploads/cvs/*.doc
+backend/uploads/cvs/*.docx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
