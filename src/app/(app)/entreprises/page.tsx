@@ -110,8 +110,7 @@ export default function EntreprisesPage() {
             <Building2 className="w-8 h-8 text-emerald-400" />
           </div>
           <h3 className="text-slate-700 font-semibold mb-1">Aucune entreprise</h3>
-          <p className="text-slate-400 text-sm mb-4">Ajoutez vos premières entreprises partenaires</p>
-          <Button onClick={() => setShowForm(true)}><Plus className="w-4 h-4" />Ajouter une entreprise</Button>
+          <p className="text-slate-400 text-sm">Ajoutez vos premières entreprises partenaires</p>
         </div>
       ) : (
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 stagger">
