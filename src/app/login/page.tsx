@@ -71,8 +71,7 @@ export default function LoginPage() {
             <Briefcase className="w-5 h-5 text-white" />
           </div>
           <div>
-            <span className="font-bold text-white text-lg">GestRH</span>
-            <span className="text-indigo-400 text-lg font-light"> Guinée</span>
+            <span className="font-bold text-white text-lg">EmploiConnect</span>
           </div>
         </div>
 
@@ -80,10 +79,10 @@ export default function LoginPage() {
         <div className="relative z-10 space-y-8">
           <div>
             <h2 className="text-4xl font-bold text-white leading-tight mb-4">
-              La plateforme RH<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">
-                #1 en Guinée
-              </span>
+                EmploiConnect
+              </span><br />
+              Le recrutement<br />reinventé en Guinée
             </h2>
             <p className="text-slate-400 text-lg leading-relaxed max-w-sm">
               Connectez les meilleurs talents aux entreprises guinéennes les plus ambitieuses.
@@ -118,7 +117,7 @@ export default function LoginPage() {
         {/* Footer quote */}
         <div className="relative z-10">
           <p className="text-slate-500 text-xs">
-            © 2026 GestRH Guinée · Conakry, République de Guinée
+            © 2026 EmploiConnect · Conakry, République de Guinée
           </p>
         </div>
       </div>
@@ -130,7 +129,7 @@ export default function LoginPage() {
           <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center">
             <Briefcase className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-slate-800 text-xl">GestRH Guinée</span>
+          <span className="font-bold text-slate-800 text-xl">EmploiConnect</span>
         </div>
 
         <div className="w-full max-w-[400px] animate-fade-up">
@@ -152,7 +151,7 @@ export default function LoginPage() {
               <input
                 {...register("email")}
                 type="email"
-                placeholder="vous@gestrh.gn"
+                placeholder="vous@emploiconnect.gn"
                 autoComplete="email"
                 className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-400 transition shadow-sm"
               />
@@ -198,13 +197,13 @@ export default function LoginPage() {
             <p className="text-xs font-medium text-indigo-700 mb-1.5">Accès démonstration</p>
             <div className="flex items-center justify-between">
               <div className="text-xs text-slate-600 space-y-0.5">
-                <p>Email : <code className="bg-white rounded px-1.5 py-0.5 text-indigo-600 font-mono">admin@gestrh.gn</code></p>
+                <p>Email : <code className="bg-white rounded px-1.5 py-0.5 text-indigo-600 font-mono">admin@emploiconnect.gn</code></p>
                 <p>Mdp : <code className="bg-white rounded px-1.5 py-0.5 text-indigo-600 font-mono">Admin@2024</code></p>
               </div>
               <button
                 type="button"
                 onClick={() => {
-                  (document.querySelector('input[type="email"]') as HTMLInputElement).value = "admin@gestrh.gn";
+                  (document.querySelector('input[type="email"]') as HTMLInputElement).value = "admin@emploiconnect.gn";
                   (document.querySelector('input[type="password"]') as HTMLInputElement).value = "Admin@2024";
                 }}
                 className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded-lg hover:bg-indigo-700 transition-colors"

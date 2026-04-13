@@ -27,7 +27,7 @@ function getBreadcrumb(pathname: string) {
       ];
     }
   }
-  return [{ label: "GestRH", href: "/" }];
+  return [{ label: "EmploiConnect", href: "/" }];
 }
 
 const GREETINGS = ["Bonjour", "Bonsoir"];
@@ -53,7 +53,7 @@ export default function Header() {
     <header className="bg-white border-b border-slate-200 px-6 h-16 flex items-center justify-between gap-4 flex-shrink-0">
       {/* Breadcrumb */}
       <div className="flex items-center gap-1.5 text-sm min-w-0">
-        <span className="text-slate-400 text-xs hidden sm:inline">GestRH</span>
+        <span className="text-slate-400 text-xs hidden sm:inline">EmploiConnect</span>
         {crumbs.map((c, i) => (
           <span key={c.href} className="flex items-center gap-1.5 min-w-0">
             <ChevronRight className="w-3 h-3 text-slate-300 flex-shrink-0 hidden sm:block" />

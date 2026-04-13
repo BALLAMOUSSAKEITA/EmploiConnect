@@ -7,8 +7,8 @@ import { Toaster } from "@/components/ui/Toaster";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "GestRH Guinée - Plateforme de Recrutement",
-  description: "Agence de recrutement de talents pour les entreprises en Guinée",
+  title: "EmploiConnect - Plateforme de Recrutement en Guinée",
+  description: "Recrutement de talents pour les entreprises en Guinée",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

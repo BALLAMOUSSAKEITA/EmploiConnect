@@ -29,7 +29,7 @@ export default function Sidebar() {
             <Briefcase className="w-4.5 h-4.5 text-white" size={18} />
           </div>
           <div>
-            <p className="font-bold text-white text-sm leading-tight">GestRH</p>
+            <p className="font-bold text-white text-sm leading-tight">EmploiConnect</p>
             <p className="text-[10px] text-slate-500 uppercase tracking-widest">Guinée</p>
           </div>
         </div>
