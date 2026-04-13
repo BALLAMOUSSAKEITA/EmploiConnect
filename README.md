@@ -1,11 +1,11 @@
-# GestRH Guinée - Plateforme de Recrutement
+# EmploiConnect — Plateforme de Recrutement
 
-Plateforme complète de gestion RH et recrutement de talents pour les entreprises en Guinée.
+Plateforme complète de recrutement de talents pour les entreprises en Guinée.
 
 ## Architecture
 
 ```
-Gestion RH/
+EmploiConnect/
 ├── backend/        ← FastAPI + SQLAlchemy + SQLite
 └── frontend/       ← Next.js 16 + Tailwind CSS 4 + TypeScript
 ```
@@ -37,17 +37,17 @@ Interface disponible sur : http://localhost:3000
 
 | Champ | Valeur |
 |-------|--------|
-| Email | admin@gestrh.gn |
+| Email | admin@emploiconnect.gn |
 | Mot de passe | Admin@2024 |
 
 ## Fonctionnalités
 
-- **Tableau de bord** — KPIs, dernières candidatures, actions rapides
-- **Offres d'emploi** — CRUD complet, filtres par statut/entreprise, gestion des candidatures
-- **Candidats** — Base de données complète, upload CV (PDF/DOC), fiches candidat
+- **Tableau de bord** — KPIs, pipeline de conversion, actions rapides
+- **Offres d'emploi** — CRUD complet, vue grille/liste, filtres par statut
+- **Candidats** — Base de données, upload CV (PDF/DOC), fiches détaillées
 - **Entreprises** — Gestion des clients, secteur, contacts
 - **Entretiens** — Planification (téléphone/vidéo/présentiel), suivi des résultats
-- **Pipeline de recrutement** — Suivi candidature → présélection → entretien → offre → embauché
+- **Pipeline de recrutement** — Candidature → Présélection → Entretien → Offre → Embauché
 
 ## Technologies
 

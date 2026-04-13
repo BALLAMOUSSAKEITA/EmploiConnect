@@ -12,8 +12,8 @@ from app.database import SessionLocal
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
-    title="GestRH Guinée - API",
-    description="Plateforme de gestion RH et recrutement de talents en Guinée",
+    title="EmploiConnect - API",
+    description="Plateforme de recrutement de talents en Guinée",
     version="1.0.0",
 )
 
@@ -40,18 +40,18 @@ def seed_admin():
     db = SessionLocal()
     try:
         from app.models import User as UserModel, UserRole
-        admin = db.query(UserModel).filter(UserModel.email == "admin@gestrh.gn").first()
+        admin = db.query(UserModel).filter(UserModel.email == "admin@emploiconnect.gn").first()
         if not admin:
             admin = UserModel(
-                email="admin@gestrh.gn",
-                full_name="Administrateur GestRH",
+                email="admin@emploiconnect.gn",
+                full_name="Administrateur EmploiConnect",
                 hashed_password=get_password_hash("Admin@2024"),
                 role=UserRole.admin,
                 is_active=True
             )
             db.add(admin)
             db.commit()
-            print("✅ Compte admin créé: admin@gestrh.gn / Admin@2024")
+            print("✅ Compte admin créé: admin@emploiconnect.gn / Admin@2024")
     finally:
         db.close()
 
@@ -63,4 +63,4 @@ async def startup():
 
 @app.get("/")
 def root():
-    return {"message": "GestRH Guinée API - v1.0.0", "docs": "/docs"}
+    return {"message": "EmploiConnect API - v1.0.0", "docs": "/docs"}

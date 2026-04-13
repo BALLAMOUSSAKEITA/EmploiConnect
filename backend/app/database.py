@@ -6,7 +6,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./rh_guinee.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./emploiconnect.db")
 
 engine = create_engine(
     DATABASE_URL,
