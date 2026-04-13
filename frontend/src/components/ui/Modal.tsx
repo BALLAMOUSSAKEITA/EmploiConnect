@@ -1,5 +1,6 @@
 "use client";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { X, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -15,18 +16,18 @@ interface ModalProps {
 const sizes = { sm: "max-w-sm", md: "max-w-md", lg: "max-w-lg", xl: "max-w-2xl" };
 
 export function Modal({ open, onClose, title, subtitle, children, size = "md" }: ModalProps) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => { setMounted(true); }, []);
+
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    document.body.style.overflow = open ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [open]);
 
-  if (!open) return null;
+  if (!mounted || !open) return null;
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in">
       {/* Backdrop */}
       <div
@@ -35,7 +36,7 @@ export function Modal({ open, onClose, title, subtitle, children, size = "md" }:
       />
       {/* Panel */}
       <div className={cn(
-        "relative bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto animate-fade-up",
+        "relative bg-white rounded-2xl shadow-2xl w-full max-h-[90vh] overflow-y-auto",
         sizes[size]
       )}>
         {/* Header */}
@@ -54,7 +55,8 @@ export function Modal({ open, onClose, title, subtitle, children, size = "md" }:
         {/* Body */}
         <div className="px-6 py-5">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
