@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -14,10 +15,10 @@ const schema = z.object({
 type FormData = z.infer<typeof schema>;
 
 const stats = [
-  { label: "Entreprises partenaires", value: "120+", icon: Building2, color: "text-blue-400" },
-  { label: "Talents recrutés", value: "2 400+", icon: Users, color: "text-violet-400" },
-  { label: "Offres publiées", value: "850+", icon: Briefcase, color: "text-emerald-400" },
-  { label: "Taux de placement", value: "94%", icon: TrendingUp, color: "text-orange-400" },
+  { label: "Entreprises partenaires", value: "0", icon: Building2, color: "text-blue-400" },
+  { label: "Talents recrutés", value: "0", icon: Users, color: "text-violet-400" },
+  { label: "Offres publiées", value: "0", icon: Briefcase, color: "text-emerald-400" },
+  { label: "Taux de placement", value: "0", icon: TrendingUp, color: "text-orange-400" },
 ];
 
 const features = [
@@ -123,19 +124,20 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right form panel ── */}
-      <div className="flex-1 flex flex-col justify-center items-center p-8 bg-slate-50">
+      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-10 bg-app-main min-h-[100dvh] lg:min-h-0">
         {/* Mobile logo */}
-        <div className="lg:hidden flex items-center gap-2 mb-10">
-          <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center">
+        <div className="lg:hidden flex items-center gap-2 mb-8">
+          <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/20 ring-1 ring-white/20">
             <Briefcase className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-slate-800 text-xl">EmploiConnect</span>
+          <span className="font-bold text-slate-800 text-xl tracking-tight">EmploiConnect</span>
         </div>
 
-        <div className="w-full max-w-[400px] animate-fade-up">
+        <div className="w-full max-w-[420px] animate-fade-up">
+          <div className="surface-card p-8 sm:p-10">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900 mb-1">Bienvenue</h1>
-            <p className="text-slate-500">Connectez-vous à votre espace agent RH</p>
+            <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight">Bienvenue</h1>
+            <p className="text-slate-500 text-[15px]">Connectez-vous à votre espace agent RH</p>
           </div>
 
           {error && (
@@ -193,6 +195,11 @@ export default function LoginPage() {
           </form>
 
           {/* Demo hint */}
+          <div className="mt-6 text-center">
+            <Link href="/carrieres" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+              Voir les offres ouvertes — Candidater en ligne
+            </Link>
+          </div>
           <div className="mt-6 bg-indigo-50 border border-indigo-100 rounded-xl p-4">
             <p className="text-xs font-medium text-indigo-700 mb-1.5">Accès démonstration</p>
             <div className="flex items-center justify-between">
@@ -211,6 +218,7 @@ export default function LoginPage() {
                 Remplir
               </button>
             </div>
+          </div>
           </div>
         </div>
       </div>

@@ -124,19 +124,20 @@ export default function LoginPage() {
       </div>
 
       {/* ── Right form panel ── */}
-      <div className="flex-1 flex flex-col justify-center items-center p-8 bg-slate-50">
+      <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-10 bg-app-main min-h-[100dvh] lg:min-h-0">
         {/* Mobile logo */}
-        <div className="lg:hidden flex items-center gap-2 mb-10">
-          <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center">
+        <div className="lg:hidden flex items-center gap-2 mb-8">
+          <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-xl flex items-center justify-center shadow-md shadow-indigo-500/20 ring-1 ring-white/20">
             <Briefcase className="w-5 h-5 text-white" />
           </div>
-          <span className="font-bold text-slate-800 text-xl">EmploiConnect</span>
+          <span className="font-bold text-slate-800 text-xl tracking-tight">EmploiConnect</span>
         </div>
 
-        <div className="w-full max-w-[400px] animate-fade-up">
+        <div className="w-full max-w-[420px] animate-fade-up">
+          <div className="surface-card p-8 sm:p-10">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900 mb-1">Bienvenue</h1>
-            <p className="text-slate-500">Connectez-vous à votre espace agent RH</p>
+            <h1 className="text-2xl font-bold text-slate-900 mb-1 tracking-tight">Bienvenue</h1>
+            <p className="text-slate-500 text-[15px]">Connectez-vous à votre espace agent RH</p>
           </div>
 
           {error && (
@@ -217,6 +218,7 @@ export default function LoginPage() {
                 Remplir
               </button>
             </div>
+          </div>
           </div>
         </div>
       </div>
