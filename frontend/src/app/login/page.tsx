@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAuth } from "@/context/AuthContext";
-import { Eye, EyeOff, Briefcase, Users, Building2, TrendingUp, CheckCircle2, ArrowRight } from "lucide-react";
+import { Eye, EyeOff, Briefcase, Users, Building2, TrendingUp, CheckCircle2, ArrowRight, AlertTriangle } from "lucide-react";
 
 const schema = z.object({
   email: z.string().email("Email invalide"),
@@ -134,13 +134,13 @@ export default function LoginPage() {
 
         <div className="w-full max-w-[400px] animate-fade-up">
           <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900 mb-1">Bienvenue 👋</h1>
+            <h1 className="text-2xl font-bold text-slate-900 mb-1">Bienvenue</h1>
             <p className="text-slate-500">Connectez-vous à votre espace agent RH</p>
           </div>
 
           {error && (
             <div className="flex items-start gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm mb-5">
-              <span className="text-base">⚠️</span>
+              <AlertTriangle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" aria-hidden />
               <span>{error}</span>
             </div>
           )}

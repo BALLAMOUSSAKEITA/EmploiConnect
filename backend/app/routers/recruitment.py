@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.database import get_db
-from app.models import Application, Candidate, JobPost, Interview, User
+from app.models import Application, Candidate, JobPost, Interview, User, ApplicationStatus
 from app.schemas.recruitment import (
     ApplicationCreate, ApplicationUpdate, ApplicationResponse,
     InterviewCreate, InterviewUpdate, InterviewResponse
@@ -10,6 +10,22 @@ from app.schemas.recruitment import (
 from app.auth.dependencies import get_current_user
 
 router = APIRouter(tags=["Recrutement"])
+
+
+def _application_response(a: Application, candidate_name=None, job_title=None, company_name=None) -> ApplicationResponse:
+    return ApplicationResponse.model_validate(a).model_copy(update={
+        "candidate_name": candidate_name,
+        "job_title": job_title,
+        "company_name": company_name,
+    })
+
+
+def _interview_response(i: Interview, candidate_name=None, job_title=None, interviewer_name=None) -> InterviewResponse:
+    return InterviewResponse.model_validate(i).model_copy(update={
+        "candidate_name": candidate_name,
+        "job_title": job_title,
+        "interviewer_name": interviewer_name,
+    })
 
 
 # ---- Applications ----
@@ -33,16 +49,19 @@ def list_applications(
     if candidate_id:
         query = query.filter(Application.candidate_id == candidate_id)
     if status:
-        query = query.filter(Application.status == status)
+        try:
+            query = query.filter(Application.status == ApplicationStatus(status))
+        except ValueError:
+            raise HTTPException(status_code=400, detail="Statut de candidature invalide")
     apps = query.order_by(Application.applied_at.desc()).offset(skip).limit(limit).all()
     result = []
     for a in apps:
-        result.append({
-            **a.__dict__,
-            "candidate_name": f"{a.candidate.first_name} {a.candidate.last_name}" if a.candidate else None,
-            "job_title": a.job_post.title if a.job_post else None,
-            "company_name": a.job_post.company.name if a.job_post and a.job_post.company else None,
-        })
+        result.append(_application_response(
+            a,
+            candidate_name=f"{a.candidate.first_name} {a.candidate.last_name}" if a.candidate else None,
+            job_title=a.job_post.title if a.job_post else None,
+            company_name=a.job_post.company.name if a.job_post and a.job_post.company else None,
+        ))
     return result
 
 
@@ -68,12 +87,12 @@ def create_application(
     db.add(app)
     db.commit()
     db.refresh(app)
-    return {
-        **app.__dict__,
-        "candidate_name": f"{candidate.first_name} {candidate.last_name}",
-        "job_title": job.title,
-        "company_name": job.company.name if job.company else None,
-    }
+    return _application_response(
+        app,
+        candidate_name=f"{candidate.first_name} {candidate.last_name}",
+        job_title=job.title,
+        company_name=job.company.name if job.company else None,
+    )
 
 
 @router.put("/applications/{app_id}", response_model=ApplicationResponse)
@@ -93,12 +112,12 @@ def update_application(
         setattr(app, field, value)
     db.commit()
     db.refresh(app)
-    return {
-        **app.__dict__,
-        "candidate_name": f"{app.candidate.first_name} {app.candidate.last_name}" if app.candidate else None,
-        "job_title": app.job_post.title if app.job_post else None,
-        "company_name": app.job_post.company.name if app.job_post and app.job_post.company else None,
-    }
+    return _application_response(
+        app,
+        candidate_name=f"{app.candidate.first_name} {app.candidate.last_name}" if app.candidate else None,
+        job_title=app.job_post.title if app.job_post else None,
+        company_name=app.job_post.company.name if app.job_post and app.job_post.company else None,
+    )
 
 
 # ---- Interviews ----
@@ -123,12 +142,12 @@ def list_interviews(
     for i in interviews:
         cand = i.application.candidate if i.application else None
         job = i.application.job_post if i.application else None
-        result.append({
-            **i.__dict__,
-            "candidate_name": f"{cand.first_name} {cand.last_name}" if cand else None,
-            "job_title": job.title if job else None,
-            "interviewer_name": i.interviewer.full_name if i.interviewer else None,
-        })
+        result.append(_interview_response(
+            i,
+            candidate_name=f"{cand.first_name} {cand.last_name}" if cand else None,
+            job_title=job.title if job else None,
+            interviewer_name=i.interviewer.full_name if i.interviewer else None,
+        ))
     return result
 
 
@@ -153,12 +172,12 @@ def create_interview(
     db.refresh(interview)
     cand = app.candidate
     job = app.job_post
-    return {
-        **interview.__dict__,
-        "candidate_name": f"{cand.first_name} {cand.last_name}" if cand else None,
-        "job_title": job.title if job else None,
-        "interviewer_name": interviewer.full_name,
-    }
+    return _interview_response(
+        interview,
+        candidate_name=f"{cand.first_name} {cand.last_name}" if cand else None,
+        job_title=job.title if job else None,
+        interviewer_name=interviewer.full_name,
+    )
 
 
 @router.put("/interviews/{interview_id}", response_model=InterviewResponse)
@@ -181,9 +200,9 @@ def update_interview(
     db.refresh(interview)
     cand = interview.application.candidate if interview.application else None
     job = interview.application.job_post if interview.application else None
-    return {
-        **interview.__dict__,
-        "candidate_name": f"{cand.first_name} {cand.last_name}" if cand else None,
-        "job_title": job.title if job else None,
-        "interviewer_name": interview.interviewer.full_name if interview.interviewer else None,
-    }
+    return _interview_response(
+        interview,
+        candidate_name=f"{cand.first_name} {cand.last_name}" if cand else None,
+        job_title=job.title if job else None,
+        interviewer_name=interview.interviewer.full_name if interview.interviewer else None,
+    )

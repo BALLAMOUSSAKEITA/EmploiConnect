@@ -10,7 +10,11 @@ from app.models import User
 router = APIRouter(prefix="/companies", tags=["Entreprises"])
 
 
-@router.get("/", response_model=List[CompanyResponse])
+def _company_response(company: Company, job_count: int) -> CompanyResponse:
+    return CompanyResponse.model_validate(company).model_copy(update={"job_count": job_count})
+
+
+@router.get("", response_model=List[CompanyResponse])
 def list_companies(
     skip: int = 0,
     limit: int = 50,
@@ -25,12 +29,11 @@ def list_companies(
     result = []
     for c in companies:
         job_count = db.query(JobPost).filter(JobPost.company_id == c.id).count()
-        c_dict = {**c.__dict__, "job_count": job_count}
-        result.append(c_dict)
+        result.append(_company_response(c, job_count))
     return result
 
 
-@router.post("/", response_model=CompanyResponse, status_code=201)
+@router.post("", response_model=CompanyResponse, status_code=201)
 def create_company(
     data: CompanyCreate,
     db: Session = Depends(get_db),
@@ -40,7 +43,7 @@ def create_company(
     db.add(company)
     db.commit()
     db.refresh(company)
-    return {**company.__dict__, "job_count": 0}
+    return _company_response(company, 0)
 
 
 @router.get("/{company_id}", response_model=CompanyResponse)
@@ -53,7 +56,7 @@ def get_company(
     if not company:
         raise HTTPException(status_code=404, detail="Entreprise introuvable")
     job_count = db.query(JobPost).filter(JobPost.company_id == company_id).count()
-    return {**company.__dict__, "job_count": job_count}
+    return _company_response(company, job_count)
 
 
 @router.put("/{company_id}", response_model=CompanyResponse)
@@ -71,7 +74,7 @@ def update_company(
     db.commit()
     db.refresh(company)
     job_count = db.query(JobPost).filter(JobPost.company_id == company_id).count()
-    return {**company.__dict__, "job_count": job_count}
+    return _company_response(company, job_count)
 
 
 @router.delete("/{company_id}", status_code=204)

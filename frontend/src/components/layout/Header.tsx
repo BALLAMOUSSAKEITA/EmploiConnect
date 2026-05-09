@@ -97,7 +97,7 @@ export default function Header() {
         <div className="flex items-center gap-2.5 cursor-pointer group pl-1">
           <div className="text-right hidden sm:block">
             <p className="text-xs font-semibold text-slate-700 leading-tight">{user?.full_name}</p>
-            <p className="text-[10px] text-slate-400">{getGreeting()} 👋</p>
+            <p className="text-[10px] text-slate-400">{getGreeting()}</p>
           </div>
           <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-violet-600 rounded-full flex items-center justify-center text-white text-xs font-bold ring-2 ring-transparent group-hover:ring-indigo-200 transition-all">
             {user?.full_name?.charAt(0).toUpperCase()}

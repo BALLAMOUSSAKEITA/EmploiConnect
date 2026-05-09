@@ -28,11 +28,11 @@ def seed_admin():
             )
             db.add(admin)
             db.commit()
-            print("✅ Compte admin créé: admin@emploiconnect.gn / Admin@2024")
+            print("Compte admin créé: admin@emploiconnect.gn / Admin@2024")
         else:
-            print("ℹ️  Compte admin déjà existant")
+            print("Compte admin déjà existant")
     except Exception as e:
-        print(f"❌ Erreur seed admin: {e}")
+        print(f"Erreur seed admin: {e}")
         db.rollback()
     finally:
         db.close()

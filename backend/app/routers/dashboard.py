@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models import User, Company, JobPost, Candidate, Application, Interview, JobStatus, ApplicationStatus
+from app.models import User, Company, JobPost, Candidate, Application, Interview, JobStatus, ApplicationStatus, InterviewResult
 from app.auth.dependencies import get_current_user
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
@@ -18,7 +18,7 @@ def get_stats(
     total_companies = db.query(Company).filter(Company.is_active == True).count()
     total_applications = db.query(Application).count()
     hired = db.query(Application).filter(Application.status == ApplicationStatus.hired).count()
-    upcoming_interviews = db.query(Interview).filter(Interview.result == "En attente").count()
+    upcoming_interviews = db.query(Interview).filter(Interview.result == InterviewResult.pending).count()
 
     recent_applications = db.query(Application).order_by(Application.applied_at.desc()).limit(5).all()
     recent_data = []

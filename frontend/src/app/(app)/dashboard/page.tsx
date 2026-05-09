@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui";
-import { Briefcase, Users, Building2, CalendarDays, TrendingUp, UserCheck, ArrowUpRight, Clock, Plus } from "lucide-react";
+import { Briefcase, Users, Building2, CalendarDays, TrendingUp, UserCheck, ArrowUpRight, Plus, User } from "lucide-react";
 import { cn, formatDate, STATUS_COLORS } from "@/lib/utils";
 import Link from "next/link";
 
@@ -69,7 +69,7 @@ export default function DashboardPage() {
         <div className="relative z-10 flex items-center justify-between gap-4">
           <div>
             <p className="text-indigo-300 text-sm font-medium mb-1">
-              {getGreeting()}, {user?.full_name?.split(" ")[0]} 👋
+              {getGreeting()}, {user?.full_name?.split(" ")[0]}
             </p>
             <h2 className="text-white text-xl font-bold mb-1">
               {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
@@ -229,17 +229,19 @@ export default function DashboardPage() {
             <h3 className="font-semibold text-slate-800 text-sm mb-3">Actions rapides</h3>
             <div className="grid grid-cols-2 gap-2">
               {[
-                { href: "/offres",      label: "Offres",      emoji: "📋", bg: "hover:bg-blue-50   hover:border-blue-200   hover:text-blue-700" },
-                { href: "/candidats",   label: "Candidats",   emoji: "👤", bg: "hover:bg-violet-50 hover:border-violet-200 hover:text-violet-700" },
-                { href: "/entreprises", label: "Entreprises", emoji: "🏢", bg: "hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700" },
-                { href: "/entretiens",  label: "Entretiens",  emoji: "📅", bg: "hover:bg-orange-50  hover:border-orange-200  hover:text-orange-700" },
-              ].map((a) => (
-                <Link key={a.href} href={a.href}
-                  className={cn("flex flex-col items-center justify-center gap-1.5 p-3 border border-slate-100 rounded-xl text-slate-600 transition-all text-center", a.bg)}>
-                  <span className="text-xl">{a.emoji}</span>
-                  <span className="text-xs font-medium">{a.label}</span>
+                { href: "/offres",      label: "Offres",      Icon: Briefcase,   bg: "hover:bg-blue-50   hover:border-blue-200   hover:text-blue-700" },
+                { href: "/candidats",   label: "Candidats",   Icon: User,        bg: "hover:bg-violet-50 hover:border-violet-200 hover:text-violet-700" },
+                { href: "/entreprises", label: "Entreprises", Icon: Building2,   bg: "hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700" },
+                { href: "/entretiens",  label: "Entretiens",  Icon: CalendarDays, bg: "hover:bg-orange-50  hover:border-orange-200  hover:text-orange-700" },
+              ].map((item) => {
+                const Icon = item.Icon;
+                return (
+                <Link key={item.href} href={item.href}
+                  className={cn("flex flex-col items-center justify-center gap-1.5 p-3 border border-slate-100 rounded-xl text-slate-600 transition-all text-center", item.bg)}>
+                  <Icon className="w-5 h-5 text-slate-500" strokeWidth={1.75} aria-hidden />
+                  <span className="text-xs font-medium">{item.label}</span>
                 </Link>
-              ))}
+              );})}
             </div>
           </div>
         </div>

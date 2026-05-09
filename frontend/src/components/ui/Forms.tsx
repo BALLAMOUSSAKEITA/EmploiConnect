@@ -21,7 +21,7 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
         {...props}
       />
       {hint && !error && <p className="text-[11px] text-slate-400">{hint}</p>}
-      {error && <p className="text-[11px] text-red-500 flex items-center gap-1">⚠ {error}</p>}
+      {error && <p className="text-[11px] text-red-500 flex items-center gap-1">{error}</p>}
     </div>
   )
 );
@@ -46,7 +46,7 @@ export const Textarea = forwardRef<HTMLTextAreaElement, TextareaHTMLAttributes<H
         )}
         {...props}
       />
-      {error && <p className="text-[11px] text-red-500">⚠ {error}</p>}
+      {error && <p className="text-[11px] text-red-500">{error}</p>}
     </div>
   )
 );
@@ -76,7 +76,7 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
           <option key={o.value} value={o.value}>{o.label}</option>
         ))}
       </select>
-      {error && <p className="text-[11px] text-red-500">⚠ {error}</p>}
+      {error && <p className="text-[11px] text-red-500">{error}</p>}
     </div>
   )
 );

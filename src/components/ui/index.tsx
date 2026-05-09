@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { ReactNode } from "react";
+import { ClipboardList } from "lucide-react";
 
 interface BadgeProps {
   children: ReactNode;
@@ -72,7 +73,7 @@ export function EmptyState({ title, description, action }: { title: string; desc
   return (
     <div className="text-center py-16">
       <div className="w-16 h-16 bg-slate-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-        <span className="text-3xl">📋</span>
+        <ClipboardList className="w-8 h-8 text-slate-400" aria-hidden />
       </div>
       <h3 className="text-lg font-semibold text-slate-700 mb-1">{title}</h3>
       <p className="text-slate-400 text-sm mb-4">{description}</p>

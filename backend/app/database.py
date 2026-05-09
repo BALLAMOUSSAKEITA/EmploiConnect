@@ -4,9 +4,10 @@ from sqlalchemy.orm import sessionmaker
 import os
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(encoding="utf-8")
 
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./emploiconnect.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./emploiconnect.db") or "sqlite:///./emploiconnect.db"
+DATABASE_URL = DATABASE_URL.strip().lstrip("\ufeff")
 
 # Railway génère parfois des URLs avec le préfixe "postgres://" (déprécié),
 # SQLAlchemy 2.0 exige "postgresql://"

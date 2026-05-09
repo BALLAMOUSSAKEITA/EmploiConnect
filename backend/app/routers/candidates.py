@@ -17,7 +17,7 @@ UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 router = APIRouter(prefix="/candidates", tags=["Candidats"])
 
 
-@router.get("/", response_model=List[CandidateResponse])
+@router.get("", response_model=List[CandidateResponse])
 def list_candidates(
     skip: int = 0,
     limit: int = 50,
@@ -36,7 +36,7 @@ def list_candidates(
     return query.order_by(Candidate.created_at.desc()).offset(skip).limit(limit).all()
 
 
-@router.post("/", response_model=CandidateResponse, status_code=201)
+@router.post("", response_model=CandidateResponse, status_code=201)
 def create_candidate(
     data: CandidateCreate,
     db: Session = Depends(get_db),
