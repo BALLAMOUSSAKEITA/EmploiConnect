@@ -46,11 +46,6 @@ function formatAction(action: string, meta: Entry["meta"]): string {
     const r = roleFr[m.role] ?? m.role;
     return `Membre retiré de l’équipe (${r})`;
   }
-  if (action === "interview_guide_updated" && meta && typeof meta === "object") {
-    const m = meta as Record<string, number>;
-    const n = m.questions ?? 0;
-    return n === 0 ? "Guide d’entretien vidé" : `Guide d’entretien mis à jour (${n} question${n > 1 ? "s" : ""})`;
-  }
   return action.replace(/_/g, " ");
 }
 

@@ -6,13 +6,31 @@ from app.database import get_db
 from app.models import Application, Candidate, JobPost, Interview, User, ApplicationStatus, ApplicationComment
 from app.schemas.recruitment import (
     ApplicationCreate, ApplicationUpdate, ApplicationResponse,
-    InterviewCreate, InterviewUpdate, InterviewResponse
+    InterviewCreate, InterviewUpdate, InterviewResponse,
+    InterviewScorecardPayload,
 )
 from app.schemas.comment import ApplicationCommentCreate, ApplicationCommentResponse
 from app.auth.dependencies import get_current_user
 from app.services.activity import log_activity
 
 router = APIRouter(tags=["Recrutement"])
+
+
+def _parse_interview_scorecard(raw: Optional[str]) -> tuple[Optional[InterviewScorecardPayload], Optional[float]]:
+    if not raw or not str(raw).strip():
+        return None, None
+    try:
+        payload = InterviewScorecardPayload.model_validate(json.loads(raw))
+    except Exception:
+        return None, None
+    if not payload.items:
+        return payload, None
+    ratios = []
+    for it in payload.items:
+        cap = max(it.max, 1)
+        ratios.append(min(it.score, cap) / cap)
+    avg_pct = round(100.0 * sum(ratios) / len(ratios), 1)
+    return payload, avg_pct
 
 
 def _application_response(a: Application, candidate_name=None, job_title=None, company_name=None) -> ApplicationResponse:
@@ -24,11 +42,16 @@ def _application_response(a: Application, candidate_name=None, job_title=None, c
 
 
 def _interview_response(i: Interview, candidate_name=None, job_title=None, interviewer_name=None) -> InterviewResponse:
-    return InterviewResponse.model_validate(i).model_copy(update={
-        "candidate_name": candidate_name,
-        "job_title": job_title,
-        "interviewer_name": interviewer_name,
-    })
+    sc_payload, sc_avg = _parse_interview_scorecard(getattr(i, "scorecard_json", None))
+    return InterviewResponse.model_validate(i).model_copy(
+        update={
+            "candidate_name": candidate_name,
+            "job_title": job_title,
+            "interviewer_name": interviewer_name,
+            "scorecard": sc_payload,
+            "scorecard_average_pct": sc_avg,
+        }
+    )
 
 
 # ---- Applications ----
@@ -290,7 +313,14 @@ def update_interview(
     ).filter(Interview.id == interview_id).first()
     if not interview:
         raise HTTPException(status_code=404, detail="Entretien introuvable")
-    for field, value in data.model_dump(exclude_unset=True).items():
+    update_data = data.model_dump(exclude_unset=True)
+    if "scorecard" in update_data:
+        sc = update_data.pop("scorecard")
+        if sc is not None:
+            interview.scorecard_json = json.dumps(sc)
+        else:
+            interview.scorecard_json = None
+    for field, value in update_data.items():
         setattr(interview, field, value)
     db.commit()
     db.refresh(interview)

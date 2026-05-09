@@ -5,8 +5,22 @@ from contextlib import asynccontextmanager
 import os
 
 from app.database import engine, Base
-from app.models import User, Company, JobPost, Candidate, CVFile, Application, Interview, ActivityLog, ApplicationComment, JobTemplate
-from app.routers import auth, companies, jobs, candidates, recruitment, dashboard, activity, export, job_templates
+from app.models import (
+    User,
+    Company,
+    JobPost,
+    JobPostTeamMember,
+    Candidate,
+    CVFile,
+    Application,
+    Interview,
+    ActivityLog,
+    ApplicationComment,
+    JobTemplate,
+    TalentList,
+    CandidateTalentList,
+)
+from app.routers import auth, companies, jobs, candidates, recruitment, dashboard, activity, export, job_templates, talent_lists, public_careers
 from app.auth.jwt import get_password_hash
 from app.database import SessionLocal
 
@@ -76,6 +90,8 @@ app.include_router(dashboard.router, prefix="/api")
 app.include_router(activity.router, prefix="/api")
 app.include_router(export.router, prefix="/api")
 app.include_router(job_templates.router, prefix="/api")
+app.include_router(talent_lists.router, prefix="/api")
+app.include_router(public_careers.router, prefix="/api")
 
 
 

@@ -43,7 +43,7 @@ export default function InterviewForm({ initial, onSuccess, onCancel }: Props) {
 
   useEffect(() => {
     api.get("/applications").then((r) => setApplications(r.data));
-    api.get("/auth/me").then((r) => setUsers([r.data]));
+    api.get("/auth/users").then((r) => setUsers(r.data));
   }, []);
 
   const onSubmit = async (data: FormData) => {

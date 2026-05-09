@@ -1,8 +1,17 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import Optional, List
 from datetime import datetime
 from app.models import JobStatus, JobType
 from app.schemas.company import CompanyResponse
+
+
+class InterviewGuideItem(BaseModel):
+    category: Optional[str] = Field(None, max_length=200)
+    question: str = Field("", max_length=2000)
+
+
+class InterviewGuidePayload(BaseModel):
+    items: List[InterviewGuideItem] = Field(default_factory=list)
 
 
 class JobPostBase(BaseModel):
@@ -41,6 +50,7 @@ class JobPostUpdate(BaseModel):
     deadline: Optional[datetime] = None
     experience_years: Optional[int] = None
     education_level: Optional[str] = None
+    interview_guide: Optional[InterviewGuidePayload] = None
 
 
 class JobPostResponse(JobPostBase):
@@ -50,6 +60,7 @@ class JobPostResponse(JobPostBase):
     updated_at: Optional[datetime] = None
     company: Optional[CompanyResponse] = None
     application_count: Optional[int] = 0
+    interview_guide: Optional[InterviewGuidePayload] = None
 
     class Config:
         from_attributes = True

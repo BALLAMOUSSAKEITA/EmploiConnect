@@ -5,17 +5,79 @@ import { Button } from "@/components/ui/Forms";
 import { Modal, ConfirmModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toaster";
 import { formatDate } from "@/lib/utils";
-import { Plus, Search, Eye, Pencil, Trash2, Phone, Mail, MapPin, FileText, Briefcase, Download } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, Phone, Mail, MapPin, FileText, Briefcase, Download, Tag, ListFilter, BellRing, FolderPlus, Upload, AlertTriangle } from "lucide-react";
 import CandidateForm from "@/components/forms/CandidateForm";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
+interface TalentListRow {
+  id: number;
+  name: string;
+  description?: string | null;
+  member_count: number;
+}
+
 interface Candidate {
   id: number;
-  first_name: string; last_name: string; email: string; phone?: string;
-  city?: string; current_position?: string; current_company?: string;
-  experience_years?: number; skills?: string; created_at: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  city?: string;
+  current_position?: string;
+  current_company?: string;
+  experience_years?: number;
+  skills?: string;
+  created_at: string;
+  tags?: string[];
+  recontact_at?: string | null;
+  recontact_note?: string | null;
+  talent_lists?: { id: number; name: string }[];
   cv_files: Array<{ id: number; file_name: string; is_primary: boolean }>;
+}
+
+function isRecontactDue(iso: string | null | undefined): boolean {
+  if (!iso) return false;
+  return new Date(iso).getTime() <= Date.now();
+}
+
+interface BulkImportRow {
+  file_name: string;
+  status: string;
+  candidate_id?: number | null;
+  message?: string | null;
+  email_detected?: string | null;
+}
+
+interface BulkImportResponse {
+  results: BulkImportRow[];
+  created: number;
+  attached: number;
+  skipped: number;
+  errors: number;
+}
+
+interface DuplicateGroup {
+  reason: string;
+  key: string;
+  candidates: { id: number; email: string; first_name: string; last_name: string; phone?: string | null }[];
+}
+
+function bulkStatusLabel(status: string): string {
+  switch (status) {
+    case "created":
+      return "Créé";
+    case "attached":
+      return "CV relié";
+    case "skipped_duplicate":
+      return "Ignoré";
+    case "duplicate_file":
+      return "Fichier déjà connu";
+    case "error":
+      return "Erreur";
+    default:
+      return status;
+  }
 }
 
 const AVATAR_GRADIENTS = [
@@ -46,21 +108,45 @@ export default function CandidatsPage() {
   const [editCand, setEditCand] = useState<Candidate | null>(null);
   const [deleteCand, setDeleteCand] = useState<Candidate | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [talentLists, setTalentLists] = useState<TalentListRow[]>([]);
+  const [listFilter, setListFilter] = useState<string>("");
+  const [tagFilter, setTagFilter] = useState("");
+  const [recontactDueOnly, setRecontactDueOnly] = useState(false);
+  const [showListModal, setShowListModal] = useState(false);
+  const [newListName, setNewListName] = useState("");
+  const [creatingList, setCreatingList] = useState(false);
+  const [showBulkModal, setShowBulkModal] = useState(false);
+  const [bulkFiles, setBulkFiles] = useState<File[]>([]);
+  const [bulkOnDuplicate, setBulkOnDuplicate] = useState<"attach_cv" | "skip">("attach_cv");
+  const [bulkLoading, setBulkLoading] = useState(false);
+  const [bulkResult, setBulkResult] = useState<BulkImportResponse | null>(null);
+  const [showDupModal, setShowDupModal] = useState(false);
+  const [dupLoading, setDupLoading] = useState(false);
+  const [dupGroups, setDupGroups] = useState<DuplicateGroup[]>([]);
   const { toast } = useToast();
+
+  useEffect(() => {
+    api.get<TalentListRow[]>("/talent-lists").then((r) => setTalentLists(r.data)).catch(() => setTalentLists([]));
+  }, []);
 
   const fetchCandidates = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = {};
+      const params: Record<string, string | boolean> = {};
       if (search) params.search = search;
-      const { data } = await api.get("/candidates", { params });
+      if (listFilter) params.list_id = listFilter;
+      if (tagFilter.trim()) params.tag = tagFilter.trim();
+      if (recontactDueOnly) params.recontact_due = true;
+      const { data } = await api.get<Candidate[]>("/candidates", { params });
       setCandidates(data);
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, listFilter, tagFilter, recontactDueOnly]);
 
-  useEffect(() => { fetchCandidates(); }, [fetchCandidates]);
+  useEffect(() => {
+    fetchCandidates();
+  }, [fetchCandidates]);
 
   const handleDelete = async () => {
     if (!deleteCand) return;
@@ -78,11 +164,74 @@ export default function CandidatsPage() {
     try {
       const params: Record<string, string> = {};
       if (search.trim()) params.search = search.trim();
+      if (listFilter) params.list_id = listFilter;
+      if (tagFilter.trim()) params.tag = tagFilter.trim();
+      if (recontactDueOnly) params.recontact_due = "true";
       const res = await api.get("/export/candidates.csv", { params, responseType: "blob" });
       downloadBlob(res.data, "candidats.csv");
       toast("Export téléchargé", "success");
     } catch {
       toast("Erreur d’export", "error");
+    }
+  };
+
+  const createTalentList = async () => {
+    const name = newListName.trim();
+    if (!name) {
+      toast("Indiquez un nom de liste", "error");
+      return;
+    }
+    setCreatingList(true);
+    try {
+      await api.post("/talent-lists", { name });
+      toast("Liste créée", "success");
+      setShowListModal(false);
+      setNewListName("");
+      const { data } = await api.get<TalentListRow[]>("/talent-lists");
+      setTalentLists(data);
+    } catch {
+      toast("Erreur", "error");
+    } finally {
+      setCreatingList(false);
+    }
+  };
+
+  const openDupModal = async () => {
+    setShowDupModal(true);
+    setDupLoading(true);
+    setDupGroups([]);
+    try {
+      const { data } = await api.get<{ groups: DuplicateGroup[] }>("/candidates/duplicate-candidates");
+      setDupGroups(data.groups);
+    } catch {
+      toast("Impossible de charger les doublons", "error");
+    } finally {
+      setDupLoading(false);
+    }
+  };
+
+  const runBulkImport = async () => {
+    if (bulkFiles.length === 0) {
+      toast("Sélectionnez au moins un fichier PDF ou DOCX", "error");
+      return;
+    }
+    setBulkLoading(true);
+    setBulkResult(null);
+    try {
+      const fd = new FormData();
+      bulkFiles.forEach((f) => fd.append("files", f));
+      fd.append("on_duplicate", bulkOnDuplicate);
+      const { data } = await api.post<BulkImportResponse>("/candidates/bulk-cv-import", fd);
+      setBulkResult(data);
+      toast(
+        `Import terminé : ${data.created} créé(s), ${data.attached} relié(s), ${data.skipped} ignoré(s), ${data.errors} erreur(s)`,
+        data.errors > 0 ? "error" : "success",
+      );
+      fetchCandidates();
+    } catch {
+      toast("Échec de l’import", "error");
+    } finally {
+      setBulkLoading(false);
     }
   };
 
@@ -96,7 +245,21 @@ export default function CandidatsPage() {
             {candidates.length} talent{candidates.length !== 1 ? "s" : ""} dans votre vivier
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 justify-end">
+          <Button variant="secondary" onClick={openDupModal} title="Analyser les doublons potentiels">
+            <AlertTriangle className="w-4 h-4" /> Doublons
+          </Button>
+          <Button
+            variant="secondary"
+            onClick={() => {
+              setBulkFiles([]);
+              setBulkResult(null);
+              setShowBulkModal(true);
+            }}
+            title="Importer plusieurs CV (PDF/DOCX)"
+          >
+            <Upload className="w-4 h-4" /> Import CV masse
+          </Button>
           <Button variant="secondary" onClick={exportCsv} title="Export CSV (filtre recherche appliqué côté serveur)">
             <Download className="w-4 h-4" /> Export CSV
           </Button>
@@ -106,15 +269,53 @@ export default function CandidatsPage() {
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative mb-5 max-w-sm">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Nom, email, compétences..."
-          className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 bg-white"
-        />
+      {/* Recherche & filtres vivier */}
+      <div className="flex flex-col xl:flex-row gap-3 mb-5 xl:items-end">
+        <div className="relative max-w-sm flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Nom, email, compétences..."
+            className="w-full pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 bg-white"
+          />
+        </div>
+        <div className="flex flex-wrap gap-2 items-center">
+          <div className="flex items-center gap-2 border border-slate-200 rounded-xl px-3 py-2 bg-white min-h-[38px]">
+            <ListFilter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <select
+              value={listFilter}
+              onChange={(e) => setListFilter(e.target.value)}
+              className="text-sm bg-transparent border-0 focus:ring-0 py-0 pr-2 max-w-[200px]"
+            >
+              <option value="">Toutes les listes</option>
+              {talentLists.map((l) => (
+                <option key={l.id} value={String(l.id)}>
+                  {l.name} ({l.member_count})
+                </option>
+              ))}
+            </select>
+          </div>
+          <input
+            value={tagFilter}
+            onChange={(e) => setTagFilter(e.target.value)}
+            placeholder="Tag vivier…"
+            className="text-sm border border-slate-200 rounded-xl px-3 py-2 w-36 bg-white"
+          />
+          <label className="flex items-center gap-2 text-xs text-slate-600 cursor-pointer border border-slate-200 rounded-xl px-3 py-2 bg-white whitespace-nowrap">
+            <input
+              type="checkbox"
+              checked={recontactDueOnly}
+              onChange={(e) => setRecontactDueOnly(e.target.checked)}
+              className="rounded border-slate-300"
+            />
+            <BellRing className="w-3.5 h-3.5 text-amber-500" />
+            Rappels dus
+          </label>
+          <Button variant="secondary" size="sm" type="button" onClick={() => { setNewListName(""); setShowListModal(true); }}>
+            <FolderPlus className="w-3.5 h-3.5" /> Liste
+          </Button>
+        </div>
       </div>
 
       {loading ? (
@@ -222,6 +423,46 @@ export default function CandidatsPage() {
                       )}
                     </div>
                   )}
+                  {(cand.tags && cand.tags.length > 0) && (
+                    <div className="flex flex-wrap gap-1 items-center mt-2">
+                      <Tag className="w-3 h-3 text-amber-600 shrink-0 opacity-80" />
+                      {cand.tags.slice(0, 6).map((t) => (
+                        <span
+                          key={t}
+                          className="bg-amber-50 text-amber-900 text-[10px] font-medium px-2 py-0.5 rounded-full border border-amber-100/80"
+                        >
+                          {t}
+                        </span>
+                      ))}
+                      {cand.tags.length > 6 && (
+                        <span className="text-[10px] text-slate-400">+{cand.tags.length - 6}</span>
+                      )}
+                    </div>
+                  )}
+                  {(cand.talent_lists && cand.talent_lists.length > 0) && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {cand.talent_lists.map((tl) => (
+                        <span key={tl.id} className="text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                          {tl.name}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {cand.recontact_at && (
+                    <div
+                      className={cn(
+                        "mt-2 text-[11px] flex items-center gap-1.5 rounded-lg px-2 py-1.5",
+                        isRecontactDue(cand.recontact_at)
+                          ? "bg-red-50 text-red-800 border border-red-100"
+                          : "bg-sky-50 text-sky-800 border border-sky-100",
+                      )}
+                    >
+                      <BellRing className="w-3.5 h-3.5 shrink-0" />
+                      {isRecontactDue(cand.recontact_at)
+                        ? "Rappel recontact à traiter"
+                        : `Recontact prévu : ${formatDate(cand.recontact_at)}`}
+                    </div>
+                  )}
                 </div>
 
                 {/* Bottom actions */}
@@ -248,6 +489,137 @@ export default function CandidatsPage() {
           })}
         </div>
       )}
+
+      <Modal open={showListModal} onClose={() => { setShowListModal(false); setNewListName(""); }} title="Nouvelle liste du vivier" size="sm">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Nom</label>
+            <input
+              value={newListName}
+              onChange={(e) => setNewListName(e.target.value)}
+              placeholder="ex. Développeurs React — Q2"
+              className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" type="button" onClick={() => { setShowListModal(false); setNewListName(""); }}>
+              Annuler
+            </Button>
+            <Button type="button" onClick={createTalentList} disabled={creatingList}>
+              {creatingList ? "…" : "Créer"}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal open={showBulkModal} onClose={() => { setShowBulkModal(false); setBulkResult(null); setBulkFiles([]); }} title="Import CV masse" size="md">
+        <div className="space-y-4">
+          <p className="text-xs text-slate-500 leading-relaxed">
+            Formats pris en charge : <strong>PDF</strong> et <strong>DOCX</strong>. Un email valide doit apparaître dans le document pour associer le CV
+            (création ou fusion avec un candidat existant). Les fichiers strictement identiques à un CV déjà stocké sont refusés.
+          </p>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Fichiers</label>
+            <input
+              type="file"
+              accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+              multiple
+              className="block w-full text-sm text-slate-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:bg-indigo-50 file:text-indigo-700"
+              onChange={(e) => setBulkFiles(Array.from(e.target.files || []))}
+            />
+            {bulkFiles.length > 0 && (
+              <p className="text-[11px] text-slate-400 mt-1">{bulkFiles.length} fichier(s) sélectionné(s)</p>
+            )}
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Si l’email existe déjà</label>
+            <select
+              value={bulkOnDuplicate}
+              onChange={(e) => setBulkOnDuplicate(e.target.value as "attach_cv" | "skip")}
+              className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 bg-white"
+            >
+              <option value="attach_cv">Ajouter le CV au candidat existant</option>
+              <option value="skip">Ignorer (ne pas importer ce fichier)</option>
+            </select>
+          </div>
+          <Button className="w-full justify-center" type="button" onClick={runBulkImport} disabled={bulkLoading || bulkFiles.length === 0}>
+            {bulkLoading ? "Import en cours…" : "Lancer l’import"}
+          </Button>
+          {bulkResult && (
+            <div className="border border-slate-100 rounded-xl max-h-56 overflow-y-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-slate-50 sticky top-0">
+                  <tr>
+                    <th className="text-left p-2 font-medium text-slate-600">Fichier</th>
+                    <th className="text-left p-2 font-medium text-slate-600">Statut</th>
+                    <th className="text-left p-2 font-medium text-slate-600">Détail</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bulkResult.results.map((r, i) => (
+                    <tr key={i} className="border-t border-slate-50">
+                      <td className="p-2 text-slate-700 break-all">{r.file_name}</td>
+                      <td className="p-2">
+                        <span
+                          className={cn(
+                            "font-medium",
+                            r.status === "created" && "text-green-700",
+                            r.status === "attached" && "text-blue-700",
+                            (r.status === "skipped_duplicate" || r.status === "duplicate_file") && "text-amber-700",
+                            r.status === "error" && "text-red-600",
+                          )}
+                        >
+                          {bulkStatusLabel(r.status)}
+                        </span>
+                        {r.candidate_id != null && (
+                          <Link href={`/candidats/${r.candidate_id}`} className="block text-[10px] text-indigo-600 underline mt-0.5">
+                            Fiche n°{r.candidate_id}
+                          </Link>
+                        )}
+                      </td>
+                      <td className="p-2 text-slate-500">{r.message}{r.email_detected ? ` — ${r.email_detected}` : ""}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </Modal>
+
+      <Modal open={showDupModal} onClose={() => setShowDupModal(false)} title="Doublons potentiels" size="md">
+        <div className="space-y-3">
+          <p className="text-xs text-slate-500">
+            Groupes détectés : même numéro de téléphone (normalisé), ou même nom + prénom avec <strong>des emails différents</strong>.
+          </p>
+          {dupLoading ? (
+            <p className="text-sm text-slate-400 py-6 text-center">Analyse…</p>
+          ) : dupGroups.length === 0 ? (
+            <p className="text-sm text-slate-500 py-6 text-center">Aucun groupe suspect pour l’instant.</p>
+          ) : (
+            <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
+              {dupGroups.map((g, idx) => (
+                <div key={idx} className="rounded-xl border border-amber-100 bg-amber-50/40 p-3 text-sm">
+                  <p className="text-[11px] font-semibold text-amber-900 mb-2">
+                    {g.reason === "phone" ? "Téléphone" : "Nom identique, emails distincts"} — {g.key.replace("|", " · ")}
+                  </p>
+                  <ul className="space-y-2">
+                    {g.candidates.map((c) => (
+                      <li key={c.id} className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5 text-xs text-slate-700">
+                        <Link href={`/candidats/${c.id}`} className="font-medium text-indigo-600 hover:underline">
+                          {c.first_name} {c.last_name}
+                        </Link>
+                        <span className="text-slate-400">{c.email}</span>
+                        {c.phone && <span className="text-slate-500">{c.phone}</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
 
       <Modal open={showForm} onClose={() => setShowForm(false)} title={editCand ? "Modifier le candidat" : "Nouveau candidat"} size="xl">
         <CandidateForm

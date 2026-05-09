@@ -1,6 +1,8 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from datetime import datetime
+
+from app.schemas.talent_list import TalentListBrief
 
 
 class CVFileResponse(BaseModel):
@@ -36,7 +38,7 @@ class CandidateBase(BaseModel):
 
 
 class CandidateCreate(CandidateBase):
-    pass
+    tags: List[str] = Field(default_factory=list)
 
 
 class CandidateUpdate(BaseModel):
@@ -58,6 +60,10 @@ class CandidateUpdate(BaseModel):
     linkedin_url: Optional[str] = None
     notes: Optional[str] = None
     is_active: Optional[bool] = None
+    tags: Optional[List[str]] = None
+    recontact_at: Optional[datetime] = None
+    recontact_note: Optional[str] = None
+    talent_list_ids: Optional[List[int]] = None
 
 
 class CandidateResponse(CandidateBase):
@@ -66,6 +72,10 @@ class CandidateResponse(CandidateBase):
     created_at: datetime
     updated_at: Optional[datetime] = None
     cv_files: List[CVFileResponse] = []
+    tags: List[str] = []
+    recontact_at: Optional[datetime] = None
+    recontact_note: Optional[str] = None
+    talent_lists: List[TalentListBrief] = []
 
     class Config:
         from_attributes = True

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Briefcase, Users, Building2,
-  CalendarDays, LogOut, Settings, ChevronRight, ClipboardList, LayoutTemplate
+  CalendarDays, LogOut, Settings, ChevronRight, ClipboardList, LayoutTemplate, ExternalLink
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -73,6 +73,15 @@ export default function Sidebar() {
             </Link>
           );
         })}
+        <Link
+          href="/carrieres"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="relative flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-slate-400 hover:bg-white/5 hover:text-slate-200 transition-all duration-150 mt-2"
+        >
+          <ExternalLink size={16} className="flex-shrink-0 text-rose-400" />
+          <span className="flex-1">Page carrière publique</span>
+        </Link>
       </nav>
 
       {/* ── User section ── */}

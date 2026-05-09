@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Boolean, Float
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, Enum, Boolean, Float, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import enum
@@ -44,6 +44,14 @@ class InterviewResult(str, enum.Enum):
     pending = "En attente"
     passed = "Validé"
     failed = "Refusé"
+
+
+class JobRecruitmentRole(str, enum.Enum):
+    """Rôles co-recrutement sur une offre."""
+    lead_recruiter = "lead_recruiter"
+    sourcer = "sourcer"
+    coordinator = "coordinator"
+    hiring_manager = "hiring_manager"
 
 
 class User(Base):
@@ -103,6 +111,7 @@ class JobPost(Base):
     education_level = Column(String, nullable=True)
     status = Column(Enum(JobStatus), default=JobStatus.open)
     deadline = Column(DateTime(timezone=True), nullable=True)
+    interview_guide_json = Column(Text, nullable=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=False)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -111,6 +120,23 @@ class JobPost(Base):
     company = relationship("Company", back_populates="job_posts")
     created_by_user = relationship("User", back_populates="job_posts")
     applications = relationship("Application", back_populates="job_post")
+    team_members = relationship("JobPostTeamMember", back_populates="job_post", cascade="all, delete-orphan")
+
+
+class JobPostTeamMember(Base):
+    __tablename__ = "job_post_team_members"
+    __table_args__ = (
+        UniqueConstraint("job_post_id", "user_id", "role", name="uq_job_team_user_role"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    job_post_id = Column(Integer, ForeignKey("job_posts.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    role = Column(Enum(JobRecruitmentRole), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    job_post = relationship("JobPost", back_populates="team_members")
+    user = relationship("User", backref="job_team_memberships")
 
 
 class Candidate(Base):
@@ -134,12 +160,53 @@ class Candidate(Base):
     current_company = Column(String, nullable=True)
     linkedin_url = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
+    tags_json = Column(Text, nullable=True)
+    recontact_at = Column(DateTime(timezone=True), nullable=True)
+    recontact_note = Column(Text, nullable=True)
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     cv_files = relationship("CVFile", back_populates="candidate")
     applications = relationship("Application", back_populates="candidate")
+    talent_list_memberships = relationship(
+        "CandidateTalentList",
+        back_populates="candidate",
+        cascade="all, delete-orphan",
+    )
+
+
+class TalentList(Base):
+    """Liste nommée du vivier (shortlists, pools)."""
+    __tablename__ = "talent_lists"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    created_by_user = relationship("User", backref="talent_lists_created")
+    memberships = relationship(
+        "CandidateTalentList",
+        back_populates="talent_list",
+        cascade="all, delete-orphan",
+    )
+
+
+class CandidateTalentList(Base):
+    __tablename__ = "candidate_talent_lists"
+    __table_args__ = (
+        UniqueConstraint("candidate_id", "talent_list_id", name="uq_candidate_talent_list"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    candidate_id = Column(Integer, ForeignKey("candidates.id"), nullable=False, index=True)
+    talent_list_id = Column(Integer, ForeignKey("talent_lists.id"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    candidate = relationship("Candidate", back_populates="talent_list_memberships")
+    talent_list = relationship("TalentList", back_populates="memberships")
 
 
 class CVFile(Base):
@@ -150,6 +217,7 @@ class CVFile(Base):
     file_name = Column(String, nullable=False)
     file_path = Column(String, nullable=False)
     file_size = Column(Integer, nullable=True)
+    content_sha256 = Column(String(64), nullable=True, index=True)
     is_primary = Column(Boolean, default=False)
     uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -166,6 +234,13 @@ class Application(Base):
     cover_letter = Column(Text, nullable=True)
     notes = Column(Text, nullable=True)
     score = Column(Integer, nullable=True)
+    utm_source = Column(String(255), nullable=True)
+    utm_medium = Column(String(255), nullable=True)
+    utm_campaign = Column(String(255), nullable=True)
+    utm_content = Column(String(255), nullable=True)
+    utm_term = Column(String(255), nullable=True)
+    referrer_url = Column(Text, nullable=True)
+    landing_page = Column(String(512), nullable=True)
     applied_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -188,6 +263,7 @@ class Interview(Base):
     meeting_link = Column(String, nullable=True)
     notes = Column(Text, nullable=True)
     feedback = Column(Text, nullable=True)
+    scorecard_json = Column(Text, nullable=True)
     result = Column(Enum(InterviewResult), default=InterviewResult.pending)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
@@ -242,6 +318,7 @@ class JobTemplate(Base):
     experience_years = Column(Integer, nullable=True)
     education_level = Column(String, nullable=True)
     company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
+    interview_guide_json = Column(Text, nullable=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

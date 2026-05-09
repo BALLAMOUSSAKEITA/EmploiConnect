@@ -1,0 +1,28 @@
+Voici des pistes alignées sur ton projet actuel (EmploiConnect : offres, entreprises, candidats, candidatures, entretiens, dashboard, auth, CV).
+
+Produit / métier
+Kanban par candidature : colonnes par statut (reçue → embauché), glisser-déposer.
+Duplication d’offre et modèles d’offre pour gagner du temps.
+Historique d’activité par candidat / par offre (qui a changé quoi, quand).
+Rappels & relances : entretiens à venir, offres qui ferment, candidatures en attente.
+Notes partagées / @mention si plusieurs recruteurs (même boîte).
+Export : CSV/Excel des candidatures ou des candidats filtrés.
+Technique / qualité
+Migrations Alembic : tu as Alembic dans les deps mais create_all au démarrage — passer à des migrations versionnées pour la prod.
+Tests : au minimum API (création candidat, candidature, changement de statut) + un test E2E critique (login + liste).
+Journalisation structurée et gestion d’erreurs API homogène (codes, messages).
+Limites & pagination cohérentes partout (limit déjà présent sur certaines routes).
+Fichiers CV : antivirus / type MIME réel, quota taille, URL signées pour téléchargement si besoin.
+Sécurité / conformité
+Rôles fins : aujourd’hui surtout admin/agent — préciser les droits (lecture seule, suppression, etc.).
+Politique mots de passe et reset par email (si tu ouvres à de vrais utilisateurs).
+RGPD : consentement, durée de conservation des CV, export / suppression candidat complète.
+UX
+Recherche avancée candidats (compétences + filtres combinés).
+Page détail offre : meilleure vue pipeline des candidatures.
+Accessibilité : labels, focus modal, contrastes (tes modales / formulaires peuvent être revus ciblé).
+Infra
+Une seule app front : tu as eu frontend/ et src/ à la racine — clarifier quel dossier est la source de vérité pour éviter la dérive.
+Variables d’env : .env.example + doc pour NEXT_PUBLIC_API_URL selon environnement.
+Si tu veux prioriser, les trois qui ont souvent le meilleur rapport effort / valeur sur un outil RH comme le tien : Kanban + historique, Alembic + tests minimal, exports + rappels entretiens.
+Dis-moi ton public (une équipe interne, un cabinet, multi-clients) et je peux restreindre la liste à un roadmap par trimestre.

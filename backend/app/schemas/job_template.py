@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
 from app.models import JobType
+from app.schemas.job import InterviewGuidePayload
 
 
 class JobTemplateCreate(BaseModel):
@@ -19,6 +20,7 @@ class JobTemplateCreate(BaseModel):
     experience_years: Optional[int] = None
     education_level: Optional[str] = None
     company_id: Optional[int] = None
+    interview_guide: Optional[InterviewGuidePayload] = None
 
 
 class JobTemplateResponse(BaseModel):
@@ -39,6 +41,7 @@ class JobTemplateResponse(BaseModel):
     company_id: Optional[int] = None
     created_by: int
     created_at: datetime
+    interview_guide: Optional[InterviewGuidePayload] = None
 
     class Config:
         from_attributes = True

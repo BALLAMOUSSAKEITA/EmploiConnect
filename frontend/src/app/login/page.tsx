@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -193,6 +194,11 @@ export default function LoginPage() {
           </form>
 
           {/* Demo hint */}
+          <div className="mt-6 text-center">
+            <Link href="/carrieres" className="text-sm text-indigo-600 hover:text-indigo-700 font-medium">
+              Voir les offres ouvertes — Candidater en ligne
+            </Link>
+          </div>
           <div className="mt-6 bg-indigo-50 border border-indigo-100 rounded-xl p-4">
             <p className="text-xs font-medium text-indigo-700 mb-1.5">Accès démonstration</p>
             <div className="flex items-center justify-between">

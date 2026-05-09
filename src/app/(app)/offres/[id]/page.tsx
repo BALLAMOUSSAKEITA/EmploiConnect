@@ -6,9 +6,29 @@ import { LoadingSpinner, Badge } from "@/components/ui";
 import { Button } from "@/components/ui/Forms";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toaster";
-import { cn, formatDate, formatDateTime, formatCurrency, STATUS_COLORS } from "@/lib/utils";
-import { ArrowLeft, MapPin, Clock, Building2, Users, Plus, User, Calendar } from "lucide-react";
+import { cn, formatDate, formatCurrency, STATUS_COLORS } from "@/lib/utils";
+import { ArrowLeft, MapPin, Clock, Building2, Users, Plus, Copy, FileStack, UserPlus, Trash2 } from "lucide-react";
 import ApplicationForm from "@/components/forms/ApplicationForm";
+import ActivityFeed from "@/components/recruitment/ActivityFeed";
+
+const JOB_TEAM_ROLES: { value: string; label: string }[] = [
+  { value: "lead_recruiter", label: "Recruteur principal" },
+  { value: "sourcer", label: "Sourcing" },
+  { value: "coordinator", label: "Coordinateur" },
+  { value: "hiring_manager", label: "Manager / Décideur" },
+];
+
+function jobTeamRoleLabel(role: string): string {
+  return JOB_TEAM_ROLES.find((r) => r.value === role)?.label ?? role;
+}
+
+interface JobTeamRow {
+  id: number;
+  user_id: number;
+  user_name: string;
+  user_email: string;
+  role: string;
+}
 
 export default function JobDetailPage() {
   const { id } = useParams();
@@ -17,17 +37,100 @@ export default function JobDetailPage() {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAppForm, setShowAppForm] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [dupLoading, setDupLoading] = useState(false);
+  const [team, setTeam] = useState<JobTeamRow[]>([]);
+  const [teamUsers, setTeamUsers] = useState<Array<{ id: number; full_name: string; email?: string }>>([]);
+  const [teamUserId, setTeamUserId] = useState("");
+  const [teamRole, setTeamRole] = useState("lead_recruiter");
+  const [teamSaving, setTeamSaving] = useState(false);
   const { toast } = useToast();
 
+  const loadTeam = () => {
+    api.get(`/jobs/${id}/team`).then((r) => setTeam(r.data)).catch(() => setTeam([]));
+  };
+
   useEffect(() => {
+    setLoading(true);
     Promise.all([
       api.get(`/jobs/${id}`),
-      api.get("/applications", { params: { job_id: id } })
-    ]).then(([jobRes, appRes]) => {
-      setJob(jobRes.data);
-      setApplications(appRes.data);
-    }).finally(() => setLoading(false));
+      api.get("/applications", { params: { job_id: id } }),
+    ])
+      .then(([jobRes, appRes]) => {
+        setJob(jobRes.data);
+        setApplications(appRes.data);
+      })
+      .catch(() => {
+        setJob(null);
+        setApplications([]);
+      })
+      .finally(() => setLoading(false));
+
+    api.get(`/jobs/${id}/team`).then((r) => setTeam(r.data)).catch(() => setTeam([]));
+    api.get("/auth/users").then((r) => setTeamUsers(r.data)).catch(() => setTeamUsers([]));
   }, [id]);
+
+  const addTeamMember = async () => {
+    if (!teamUserId) {
+      toast("Choisissez un collaborateur", "error");
+      return;
+    }
+    setTeamSaving(true);
+    try {
+      await api.post(`/jobs/${id}/team`, { user_id: Number(teamUserId), role: teamRole });
+      toast("Membre ajouté à l’équipe", "success");
+      setTeamUserId("");
+      loadTeam();
+    } catch (e: any) {
+      toast(e?.response?.data?.detail || "Impossible d’ajouter", "error");
+    } finally {
+      setTeamSaving(false);
+    }
+  };
+
+  const removeTeamMember = async (memberId: number) => {
+    try {
+      await api.delete(`/jobs/${id}/team/${memberId}`);
+      toast("Membre retiré", "success");
+      loadTeam();
+    } catch {
+      toast("Erreur", "error");
+    }
+  };
+
+  const duplicateJob = async () => {
+    setDupLoading(true);
+    try {
+      const { data } = await api.post(`/jobs/${id}/duplicate`);
+      toast("Offre dupliquée (brouillon)", "success");
+      router.push(`/offres/${data.id}`);
+    } catch {
+      toast("Impossible de dupliquer l’offre", "error");
+    } finally {
+      setDupLoading(false);
+    }
+  };
+
+  const saveAsTemplate = async () => {
+    const name = templateName.trim();
+    if (!name) {
+      toast("Indiquez un nom pour le modèle", "error");
+      return;
+    }
+    setSavingTemplate(true);
+    try {
+      await api.post(`/job-templates/from-job/${id}`, { name });
+      toast("Modèle enregistré", "success");
+      setShowTemplateModal(false);
+      setTemplateName("");
+    } catch {
+      toast("Erreur à l’enregistrement", "error");
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
 
   const updateStatus = async (appId: number, status: string) => {
     try {
@@ -62,9 +165,20 @@ export default function JobDetailPage() {
                   <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{formatDate(job.created_at)}</span>
                 </div>
               </div>
-              <Badge className={cn(STATUS_COLORS[job.status] || "bg-gray-100")}>
-                {job.status}
-              </Badge>
+              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                <Badge className={cn(STATUS_COLORS[job.status] || "bg-gray-100")}>
+                  {job.status}
+                </Badge>
+                <div className="flex flex-wrap gap-1.5 justify-end">
+                  <Button size="sm" variant="secondary" onClick={duplicateJob} disabled={dupLoading}>
+                    <Copy className="w-3.5 h-3.5" />
+                    {dupLoading ? "…" : "Dupliquer"}
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => { setTemplateName(`${job.title} — modèle`); setShowTemplateModal(true); }}>
+                    <FileStack className="w-3.5 h-3.5" /> Modèle
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-2 flex-wrap mb-5">
@@ -151,8 +265,95 @@ export default function JobDetailPage() {
               {job.deadline && <div className="flex justify-between"><span className="text-slate-500">Deadline</span><span className="font-medium">{formatDate(job.deadline)}</span></div>}
             </div>
           </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h4 className="font-semibold text-slate-700 mb-1 flex items-center gap-2">
+              <UserPlus className="w-4 h-4 text-indigo-500" /> Co-recrutement
+            </h4>
+            <p className="text-[11px] text-slate-400 mb-4">
+              Qui joue quel rôle sur cette offre (plusieurs personnes possibles).
+            </p>
+            {team.length > 0 && (
+              <ul className="space-y-2 mb-4">
+                {[...team]
+                  .sort((a, b) => jobTeamRoleLabel(a.role).localeCompare(jobTeamRoleLabel(b.role)) || a.user_name.localeCompare(b.user_name))
+                  .map((m) => (
+                    <li
+                      key={m.id}
+                      className="flex items-start justify-between gap-2 text-xs border border-slate-100 rounded-xl px-3 py-2 bg-slate-50/50"
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-slate-800 truncate">{m.user_name}</p>
+                        <p className="text-slate-400 truncate">{m.user_email}</p>
+                        <span className="inline-block mt-1 text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md">
+                          {jobTeamRoleLabel(m.role)}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => removeTeamMember(m.id)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:bg-red-50 hover:text-red-600 shrink-0"
+                        title="Retirer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </li>
+                  ))}
+              </ul>
+            )}
+            <div className="space-y-2">
+              <label className="block text-[11px] font-medium text-slate-500">Ajouter un membre</label>
+              <div className="flex flex-col gap-2">
+                <select
+                  value={teamUserId}
+                  onChange={(e) => setTeamUserId(e.target.value)}
+                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  <option value="">Collaborateur…</option>
+                  {teamUsers.map((u) => (
+                    <option key={u.id} value={u.id}>{u.full_name}</option>
+                  ))}
+                </select>
+                <select
+                  value={teamRole}
+                  onChange={(e) => setTeamRole(e.target.value)}
+                  className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                >
+                  {JOB_TEAM_ROLES.map((r) => (
+                    <option key={r.value} value={r.value}>{r.label}</option>
+                  ))}
+                </select>
+                <Button size="sm" type="button" onClick={addTeamMember} disabled={teamSaving} className="w-full justify-center">
+                  {teamSaving ? "…" : "Ajouter au pipeline"}
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h4 className="font-semibold text-slate-700 mb-3">Historique d&apos;activité</h4>
+            <ActivityFeed kind="job" entityId={Number(id)} />
+          </div>
         </div>
       </div>
+
+      <Modal open={showTemplateModal} onClose={() => { setShowTemplateModal(false); setTemplateName(""); }} title="Enregistrer comme modèle" size="sm">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Nom du modèle</label>
+            <input
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              placeholder="ex. Développeur senior — standard"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => { setShowTemplateModal(false); setTemplateName(""); }}>Annuler</Button>
+            <Button onClick={saveAsTemplate} disabled={savingTemplate}>{savingTemplate ? "…" : "Enregistrer"}</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={showAppForm} onClose={() => setShowAppForm(false)} title="Ajouter une candidature" size="md">
         <ApplicationForm

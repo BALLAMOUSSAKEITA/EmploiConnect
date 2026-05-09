@@ -20,6 +20,10 @@ interface ApplicationRow {
   job_title?: string | null;
   company_name?: string | null;
   applied_at: string;
+  utm_source?: string | null;
+  utm_medium?: string | null;
+  utm_campaign?: string | null;
+  landing_page?: string | null;
 }
 
 const STATUS_OPTIONS = ["Candidature reçue", "Présélection", "Entretien", "Offre envoyée", "Embauché", "Refusé"];
@@ -78,7 +82,9 @@ export default function CandidaturesPage() {
   const q = search.trim().toLowerCase();
   const filtered = q
     ? applications.filter((a) =>
-        [a.candidate_name, a.job_title, a.company_name].some((x) => (x || "").toLowerCase().includes(q))
+        [a.candidate_name, a.job_title, a.company_name, a.utm_source, a.utm_campaign, a.landing_page].some((x) =>
+          (x || "").toLowerCase().includes(q),
+        ),
       )
     : applications;
 
@@ -190,6 +196,12 @@ export default function CandidaturesPage() {
                   </div>
                   <p className="text-xs text-slate-400">
                     {app.company_name || "—"} · {formatDate(app.applied_at)}
+                    {(app.utm_source || app.utm_campaign) && (
+                      <span className="ml-2 text-violet-600">
+                        · Source : {app.utm_source || "—"}
+                        {app.utm_campaign ? ` / ${app.utm_campaign}` : ""}
+                      </span>
+                    )}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">
