@@ -1,4 +1,4 @@
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import os
@@ -21,6 +21,38 @@ engine = create_engine(
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+def ensure_candidates_vivier_columns() -> None:
+    """
+    Colonnes ajoutées après les premiers déploiements (create_all n'altère pas les tables existantes).
+    Idempotent : vérifie les colonnes présentes avant ALTER.
+    """
+    try:
+        insp = inspect(engine)
+    except Exception:
+        return
+    if not insp.has_table("candidates"):
+        return
+    existing = {c["name"] for c in insp.get_columns("candidates")}
+    dialect = engine.dialect.name
+    stmts: list[str] = []
+    if "tags_json" not in existing:
+        stmts.append("ALTER TABLE candidates ADD COLUMN tags_json TEXT")
+    if "recontact_at" not in existing:
+        if dialect == "postgresql":
+            stmts.append(
+                "ALTER TABLE candidates ADD COLUMN recontact_at TIMESTAMP WITH TIME ZONE"
+            )
+        else:
+            stmts.append("ALTER TABLE candidates ADD COLUMN recontact_at DATETIME")
+    if "recontact_note" not in existing:
+        stmts.append("ALTER TABLE candidates ADD COLUMN recontact_note TEXT")
+    if not stmts:
+        return
+    with engine.begin() as conn:
+        for sql in stmts:
+            conn.execute(text(sql))
 
 
 def get_db():

@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import os
 
-from app.database import engine, Base
+from app.database import engine, Base, ensure_candidates_vivier_columns, SessionLocal
 from app.models import (
     User,
     Company,
@@ -22,9 +22,9 @@ from app.models import (
 )
 from app.routers import auth, companies, jobs, candidates, recruitment, dashboard, activity, export, job_templates, talent_lists, public_careers
 from app.auth.jwt import get_password_hash
-from app.database import SessionLocal
 
 Base.metadata.create_all(bind=engine)
+ensure_candidates_vivier_columns()
 
 
 def seed_admin():
