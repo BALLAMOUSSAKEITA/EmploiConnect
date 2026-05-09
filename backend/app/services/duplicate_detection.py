@@ -6,6 +6,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app.models import Candidate
+from app.query_filters import candidate_is_listed
 
 
 def normalize_phone_key(phone: Optional[str]) -> Optional[str]:
@@ -27,7 +28,7 @@ def normalize_full_name_key(first_name: Optional[str], last_name: Optional[str])
 
 def find_duplicate_groups(db: Session):
     """Retourne des groupes { reason, key, candidates: [{id, email, ...}] }."""
-    rows = db.query(Candidate).filter(Candidate.is_active == True).all()
+    rows = db.query(Candidate).filter(candidate_is_listed()).all()
     phone_buckets: dict[str, list[Candidate]] = {}
     name_buckets: dict[str, list[Candidate]] = {}
     for c in rows:

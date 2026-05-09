@@ -124,7 +124,7 @@ async def public_apply(
         raise HTTPException(status_code=400, detail="Email invalide")
 
     cand = db.query(Candidate).filter(Candidate.email == em).first()
-    if cand and not cand.is_active:
+    if cand and cand.is_active is False:
         raise HTTPException(
             status_code=400,
             detail="Ce profil n’est plus actif. Contactez le recruteur.",
@@ -146,6 +146,7 @@ async def public_apply(
             email=em,
             phone=(phone or "").strip() or None,
             notes="Profil créé depuis la page carrière publique.",
+            is_active=True,
         )
         db.add(cand)
         try:

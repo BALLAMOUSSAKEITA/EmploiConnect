@@ -7,6 +7,7 @@ from app.database import get_db
 from app.models import User, TalentList, CandidateTalentList, Candidate
 from app.schemas.talent_list import TalentListCreate, TalentListUpdate, TalentListResponse
 from app.auth.dependencies import get_current_user
+from app.query_filters import candidate_is_listed
 
 router = APIRouter(prefix="/talent-lists", tags=["Vivier — listes"])
 
@@ -100,7 +101,7 @@ def add_list_member(
 ):
     if not db.query(TalentList).filter(TalentList.id == list_id).first():
         raise HTTPException(status_code=404, detail="Liste introuvable")
-    cand = db.query(Candidate).filter(Candidate.id == candidate_id, Candidate.is_active == True).first()
+    cand = db.query(Candidate).filter(Candidate.id == candidate_id).filter(candidate_is_listed()).first()
     if not cand:
         raise HTTPException(status_code=404, detail="Candidat introuvable")
     exists = (

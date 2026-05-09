@@ -1,25 +1,58 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session, joinedload
+from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 from app.database import get_db
 from app.models import User, Company, JobPost, Candidate, Application, Interview, JobStatus, ApplicationStatus, InterviewResult
 from app.auth.dependencies import get_current_user
+from app.query_filters import candidate_is_listed, company_is_listed
 
 router = APIRouter(prefix="/dashboard", tags=["Dashboard"])
+
+
+def _app_status_label(st) -> str:
+    if st is None:
+        return ""
+    return st.value if hasattr(st, "value") else str(st)
 
 
 @router.get("/stats")
 def get_stats(
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
+    now = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+
     total_jobs = db.query(JobPost).count()
     open_jobs = db.query(JobPost).filter(JobPost.status == JobStatus.open).count()
-    total_candidates = db.query(Candidate).filter(Candidate.is_active == True).count()
-    total_companies = db.query(Company).filter(Company.is_active == True).count()
+    total_candidates = db.query(Candidate).filter(candidate_is_listed()).count()
+    total_companies = db.query(Company).filter(company_is_listed()).count()
     total_applications = db.query(Application).count()
-    hired = db.query(Application).filter(Application.status == ApplicationStatus.hired).count()
-    upcoming_interviews = db.query(Interview).filter(Interview.result == InterviewResult.pending).count()
+
+    hired_count = (
+        db.query(Application)
+        .filter(Application.status == ApplicationStatus.hired)
+        .filter(func.coalesce(Application.updated_at, Application.applied_at) >= month_start)
+        .count()
+    )
+
+    hired_total = db.query(Application).filter(Application.status == ApplicationStatus.hired).count()
+
+    upcoming_interviews = (
+        db.query(Interview)
+        .filter(
+            Interview.result == InterviewResult.pending,
+            Interview.scheduled_at >= now,
+        )
+        .count()
+    )
+
+    applications_in_interview = (
+        db.query(Application)
+        .filter(Application.status == ApplicationStatus.interview)
+        .count()
+    )
 
     recent_applications = db.query(Application).order_by(Application.applied_at.desc()).limit(5).all()
     recent_data = []
@@ -32,7 +65,7 @@ def get_stats(
             "candidate_name": f"{cand.first_name} {cand.last_name}" if cand else "Inconnu",
             "job_title": job.title if job else "Inconnu",
             "company_name": company.name if company else "Inconnu",
-            "status": a.status,
+            "status": _app_status_label(a.status),
             "applied_at": a.applied_at,
         })
 
@@ -42,8 +75,10 @@ def get_stats(
         "total_candidates": total_candidates,
         "total_companies": total_companies,
         "total_applications": total_applications,
-        "hired_count": hired,
+        "hired_count": hired_count,
+        "hired_total": hired_total,
         "upcoming_interviews": upcoming_interviews,
+        "applications_in_interview": applications_in_interview,
         "recent_applications": recent_data,
     }
 
@@ -121,7 +156,7 @@ def get_reminders(
     )
     applications_stale = []
     for a in stale_apps:
-        st = a.status.value if hasattr(a.status, "value") else str(a.status)
+        st = _app_status_label(a.status)
         cand = a.candidate
         jp = a.job_post
         applications_stale.append({

@@ -98,6 +98,23 @@ def ensure_cv_files_bootstrap_columns() -> None:
             )
 
 
+def normalize_null_is_active_flags() -> None:
+    """Les lignes avec is_active NULL sont exclues par SQL (is_active = true). Les traiter comme actives."""
+    try:
+        insp = inspect(engine)
+    except Exception:
+        return
+    with engine.begin() as conn:
+        if insp.has_table("candidates"):
+            conn.execute(
+                text("UPDATE candidates SET is_active = true WHERE is_active IS NULL")
+            )
+        if insp.has_table("companies"):
+            conn.execute(
+                text("UPDATE companies SET is_active = true WHERE is_active IS NULL")
+            )
+
+
 def get_db():
     db = SessionLocal()
     try:

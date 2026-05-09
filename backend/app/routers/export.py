@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.database import get_db
 from app.models import User, Application, Candidate, JobPost, Interview, TalentList, CandidateTalentList
 from app.auth.dependencies import get_current_user
+from app.query_filters import candidate_is_listed
 
 router = APIRouter(prefix="/export", tags=["Export"])
 
@@ -172,7 +173,7 @@ def export_candidates_csv(
     recontact_due: bool = False,
     limit: int = Query(5000, le=20000),
 ):
-    q = db.query(Candidate).filter(Candidate.is_active == True)
+    q = db.query(Candidate).filter(candidate_is_listed())
     if search:
         q = q.filter(
             (Candidate.first_name.ilike(f"%{search}%"))

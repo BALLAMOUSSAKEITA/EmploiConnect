@@ -10,7 +10,9 @@ import Link from "next/link";
 interface Stats {
   total_jobs: number; open_jobs: number; total_candidates: number;
   total_companies: number; total_applications: number; hired_count: number;
+  hired_total?: number;
   upcoming_interviews: number;
+  applications_in_interview?: number;
   recent_applications: Array<{ id: number; candidate_name: string; job_title: string; company_name: string; status: string; applied_at: string }>;
 }
 
@@ -64,23 +66,31 @@ export default function DashboardPage() {
     applications_stale: [],
   });
   const [loading, setLoading] = useState(true);
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
 
   useEffect(() => {
+    if (authLoading || !user) return;
     let cancelled = false;
     setLoading(true);
-    api.get("/dashboard/stats")
-      .then((r) => { if (!cancelled) setStats(r.data); })
-      .finally(() => { if (!cancelled) setLoading(false); });
-    api.get("/dashboard/reminders")
-      .then((r) => { if (!cancelled) setReminders(r.data); })
-      .catch(() => {
+    Promise.all([api.get("/dashboard/stats"), api.get("/dashboard/reminders")])
+      .then(([st, rm]) => {
         if (!cancelled) {
+          setStats(st.data);
+          setReminders(rm.data);
+        }
+      })
+      .catch((e) => {
+        console.error("dashboard", e);
+        if (!cancelled) {
+          setStats(null);
           setReminders({ interviews_soon: [], jobs_closing_soon: [], applications_stale: [] });
         }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
       });
     return () => { cancelled = true; };
-  }, []);
+  }, [authLoading, user?.id]);
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -90,7 +100,7 @@ export default function DashboardPage() {
   };
 
   const hiringRate = stats && stats.total_applications > 0
-    ? Math.round((stats.hired_count / stats.total_applications) * 100)
+    ? Math.round(((stats.hired_total ?? stats.hired_count) / stats.total_applications) * 100)
     : 0;
 
   return (
@@ -230,8 +240,8 @@ export default function DashboardPage() {
               <div className="space-y-3">
                 {[
                   { label: "Candidatures reçues", value: stats?.total_applications ?? 0, max: stats?.total_applications ?? 1, color: "bg-indigo-500" },
-                  { label: "En entretien",         value: stats?.upcoming_interviews ?? 0, max: stats?.total_applications ?? 1, color: "bg-violet-500" },
-                  { label: "Embauchés",            value: stats?.hired_count ?? 0,        max: stats?.total_applications ?? 1, color: "bg-emerald-500" },
+                  { label: "En entretien",         value: stats?.applications_in_interview ?? 0, max: stats?.total_applications ?? 1, color: "bg-violet-500" },
+                  { label: "Embauchés (mois)",    value: stats?.hired_count ?? 0,        max: stats?.total_applications ?? 1, color: "bg-emerald-500" },
                 ].map((item) => (
                   <div key={item.label}>
                     <div className="flex justify-between text-xs mb-1">

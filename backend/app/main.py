@@ -9,6 +9,7 @@ from app.database import (
     Base,
     ensure_candidates_vivier_columns,
     ensure_cv_files_bootstrap_columns,
+    normalize_null_is_active_flags,
     SessionLocal,
 )
 from app.models import (
@@ -32,6 +33,7 @@ from app.auth.jwt import get_password_hash
 Base.metadata.create_all(bind=engine)
 ensure_candidates_vivier_columns()
 ensure_cv_files_bootstrap_columns()
+normalize_null_is_active_flags()
 
 
 def seed_admin():

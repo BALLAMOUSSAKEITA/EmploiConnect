@@ -6,6 +6,7 @@ from app.models import Company, JobPost
 from app.schemas.company import CompanyCreate, CompanyUpdate, CompanyResponse
 from app.auth.dependencies import get_current_user
 from app.models import User
+from app.query_filters import company_is_listed
 
 router = APIRouter(prefix="/companies", tags=["Entreprises"])
 
@@ -22,7 +23,7 @@ def list_companies(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
-    query = db.query(Company).filter(Company.is_active == True)
+    query = db.query(Company).filter(company_is_listed())
     if search:
         query = query.filter(Company.name.ilike(f"%{search}%"))
     companies = query.offset(skip).limit(limit).all()

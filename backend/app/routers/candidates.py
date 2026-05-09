@@ -21,6 +21,7 @@ from app.schemas.bulk_cv import (
 )
 from app.auth.dependencies import get_current_user
 from app.models import User
+from app.query_filters import candidate_is_listed
 from app.services import duplicate_detection as duplicate_detection_svc
 from app.services import cv_extract
 from dotenv import load_dotenv
@@ -140,7 +141,7 @@ def _candidate_query(db: Session):
             joinedload(Candidate.cv_files),
             joinedload(Candidate.talent_list_memberships).joinedload(CandidateTalentList.talent_list),
         )
-        .filter(Candidate.is_active == True)
+        .filter(candidate_is_listed())
     )
 
 
@@ -192,6 +193,7 @@ def create_candidate(
     dump = data.model_dump()
     tags = dump.pop("tags", None)
     candidate = Candidate(**dump)
+    candidate.is_active = True
     if tags is not None:
         candidate.tags_json = _tags_to_json(tags)
     db.add(candidate)
@@ -314,7 +316,8 @@ async def bulk_cv_import(
         if existing_cv:
             cand_same = (
                 db.query(Candidate)
-                .filter(Candidate.email == email, Candidate.is_active == True)
+                .filter(Candidate.email == email)
+                .filter(candidate_is_listed())
                 .first()
             )
             if cand_same and existing_cv.candidate_id == cand_same.id:
@@ -343,7 +346,8 @@ async def bulk_cv_import(
 
         cand = (
             db.query(Candidate)
-            .filter(Candidate.email == email, Candidate.is_active == True)
+            .filter(Candidate.email == email)
+            .filter(candidate_is_listed())
             .first()
         )
 
@@ -393,6 +397,7 @@ async def bulk_cv_import(
             email=email,
             notes="Créé par import CV masse",
             tags_json=_tags_to_json(["import-masse"]),
+            is_active=True,
         )
         db.add(new_c)
         try:
@@ -402,7 +407,8 @@ async def bulk_cv_import(
             db.rollback()
             cand = (
                 db.query(Candidate)
-                .filter(Candidate.email == email, Candidate.is_active == True)
+                .filter(Candidate.email == email)
+                .filter(candidate_is_listed())
                 .first()
             )
             if not cand:
