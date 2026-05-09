@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import api from "@/lib/api";
 import { Button } from "@/components/ui/Forms";
 import { Modal } from "@/components/ui/Modal";
@@ -83,7 +84,10 @@ export default function EntretiensPage() {
             <Calendar className="w-8 h-8 text-orange-400" />
           </div>
           <h3 className="text-slate-700 font-semibold mb-1">Aucun entretien planifié</h3>
-          <p className="text-slate-400 text-sm">Planifiez des entretiens avec vos candidats présélectionnés</p>
+          <p className="text-slate-400 text-sm mb-4 max-w-md mx-auto">
+            Créez d’abord une <Link href="/candidatures" className="text-indigo-600 font-medium hover:underline">candidature</Link>
+            {" "}(candidat + offre), puis planifiez un entretien à partir de cette candidature.
+          </p>
         </div>
       ) : (
         <div className="space-y-6">

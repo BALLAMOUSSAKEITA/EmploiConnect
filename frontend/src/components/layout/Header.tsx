@@ -8,6 +8,7 @@ const ROUTES: Record<string, { label: string; parent?: string; parentHref?: stri
   "/dashboard":   { label: "Tableau de bord" },
   "/offres":      { label: "Offres d'emploi" },
   "/candidats":   { label: "Candidats" },
+  "/candidatures": { label: "Candidatures" },
   "/entreprises": { label: "Entreprises" },
   "/entretiens":  { label: "Entretiens" },
   "/parametres":  { label: "Paramètres" },

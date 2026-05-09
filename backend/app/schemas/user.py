@@ -45,3 +45,12 @@ class TokenData(BaseModel):
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
+
+
+class UserMention(BaseModel):
+    id: int
+    full_name: str
+    email: EmailStr
+
+    class Config:
+        from_attributes = True

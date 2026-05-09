@@ -172,6 +172,7 @@ class Application(Base):
     candidate = relationship("Candidate", back_populates="applications")
     job_post = relationship("JobPost", back_populates="applications")
     interviews = relationship("Interview", back_populates="application")
+    comments = relationship("ApplicationComment", back_populates="application")
 
 
 class Interview(Base):
@@ -193,3 +194,56 @@ class Interview(Base):
 
     application = relationship("Application", back_populates="interviews")
     interviewer = relationship("User", back_populates="interviews")
+
+
+class ActivityLog(Base):
+    __tablename__ = "activity_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    entity_type = Column(String(32), nullable=False, index=True)
+    entity_id = Column(Integer, nullable=False, index=True)
+    action = Column(String(64), nullable=False)
+    meta = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", backref="activity_logs")
+
+
+class ApplicationComment(Base):
+    __tablename__ = "application_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    application_id = Column(Integer, ForeignKey("applications.id"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    body = Column(Text, nullable=False)
+    mentioned_user_ids = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    application = relationship("Application", back_populates="comments")
+    user = relationship("User")
+
+
+class JobTemplate(Base):
+    __tablename__ = "job_templates"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(255), nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    requirements = Column(Text, nullable=True)
+    responsibilities = Column(Text, nullable=True)
+    location = Column(String, nullable=True)
+    city = Column(String, nullable=True)
+    job_type = Column(Enum(JobType), default=JobType.cdi)
+    salary_min = Column(Float, nullable=True)
+    salary_max = Column(Float, nullable=True)
+    salary_currency = Column(String, default="GNF")
+    experience_years = Column(Integer, nullable=True)
+    education_level = Column(String, nullable=True)
+    company_id = Column(Integer, ForeignKey("companies.id"), nullable=True)
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    company = relationship("Company")
+    created_by_user = relationship("User")

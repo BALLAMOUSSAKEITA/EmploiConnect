@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Briefcase, Users, Building2,
-  CalendarDays, LogOut, Settings, ChevronRight
+  CalendarDays, LogOut, Settings, ChevronRight, ClipboardList, LayoutTemplate
 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,9 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { href: "/dashboard",   label: "Tableau de bord",  icon: LayoutDashboard, color: "text-indigo-400" },
   { href: "/offres",      label: "Offres d'emploi",   icon: Briefcase,        color: "text-blue-400"   },
+  { href: "/offres/modeles", label: "Modèles d'offre", icon: LayoutTemplate,  color: "text-cyan-400"   },
   { href: "/candidats",   label: "Candidats",          icon: Users,            color: "text-violet-400" },
+  { href: "/candidatures", label: "Candidatures",      icon: ClipboardList,   color: "text-sky-400"     },
   { href: "/entreprises", label: "Entreprises",        icon: Building2,        color: "text-emerald-400"},
   { href: "/entretiens",  label: "Entretiens",         icon: CalendarDays,     color: "text-orange-400" },
 ];
@@ -39,7 +41,10 @@ export default function Sidebar() {
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         <p className="px-3 text-[10px] text-slate-600 uppercase tracking-widest font-semibold mb-3">Navigation</p>
         {navItems.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + "/");
+          const active =
+            item.href === "/offres"
+              ? pathname === "/offres" || /^\/offres\/\d+(?:\/|$)/.test(pathname)
+              : pathname === item.href || pathname.startsWith(item.href + "/");
           const Icon = item.icon;
           return (
             <Link

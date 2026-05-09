@@ -1,13 +1,16 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session, joinedload
 from typing import List, Optional
 from app.database import get_db
-from app.models import Application, Candidate, JobPost, Interview, User, ApplicationStatus
+from app.models import Application, Candidate, JobPost, Interview, User, ApplicationStatus, ApplicationComment
 from app.schemas.recruitment import (
     ApplicationCreate, ApplicationUpdate, ApplicationResponse,
     InterviewCreate, InterviewUpdate, InterviewResponse
 )
+from app.schemas.comment import ApplicationCommentCreate, ApplicationCommentResponse
 from app.auth.dependencies import get_current_user
+from app.services.activity import log_activity
 
 router = APIRouter(tags=["Recrutement"])
 
@@ -33,7 +36,7 @@ def _interview_response(i: Interview, candidate_name=None, job_title=None, inter
 @router.get("/applications", response_model=List[ApplicationResponse])
 def list_applications(
     skip: int = 0,
-    limit: int = 50,
+    limit: int = 500,
     job_id: Optional[int] = None,
     candidate_id: Optional[int] = None,
     status: Optional[str] = None,
@@ -85,6 +88,15 @@ def create_application(
         raise HTTPException(status_code=400, detail="Ce candidat a déjà postulé à cette offre")
     app = Application(**data.model_dump())
     db.add(app)
+    db.flush()
+    log_activity(
+        db,
+        current_user.id,
+        "application",
+        app.id,
+        "created",
+        {"candidate_id": data.candidate_id, "job_post_id": data.job_post_id},
+    )
     db.commit()
     db.refresh(app)
     return _application_response(
@@ -108,8 +120,22 @@ def update_application(
     ).filter(Application.id == app_id).first()
     if not app:
         raise HTTPException(status_code=404, detail="Candidature introuvable")
-    for field, value in data.model_dump(exclude_unset=True).items():
+    updates = data.model_dump(exclude_unset=True)
+    old_status = app.status
+    for field, value in updates.items():
         setattr(app, field, value)
+    if "status" in updates and old_status != app.status:
+        log_activity(
+            db,
+            current_user.id,
+            "application",
+            app_id,
+            "status_changed",
+            {
+                "old": old_status.value if hasattr(old_status, "value") else str(old_status),
+                "new": app.status.value if hasattr(app.status, "value") else str(app.status),
+            },
+        )
     db.commit()
     db.refresh(app)
     return _application_response(
@@ -118,6 +144,76 @@ def update_application(
         job_title=app.job_post.title if app.job_post else None,
         company_name=app.job_post.company.name if app.job_post and app.job_post.company else None,
     )
+
+
+def _comment_response(c: ApplicationComment) -> ApplicationCommentResponse:
+    mids = None
+    if c.mentioned_user_ids:
+        try:
+            mids = json.loads(c.mentioned_user_ids)
+        except json.JSONDecodeError:
+            mids = None
+    return ApplicationCommentResponse(
+        id=c.id,
+        application_id=c.application_id,
+        user_id=c.user_id,
+        user_name=c.user.full_name if c.user else None,
+        body=c.body,
+        mentioned_user_ids=mids,
+        created_at=c.created_at,
+    )
+
+
+@router.get("/applications/{app_id}/comments", response_model=List[ApplicationCommentResponse])
+def list_application_comments(
+    app_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    app = db.query(Application).filter(Application.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Candidature introuvable")
+    rows = (
+        db.query(ApplicationComment)
+        .options(joinedload(ApplicationComment.user))
+        .filter(ApplicationComment.application_id == app_id)
+        .order_by(ApplicationComment.created_at.asc())
+        .all()
+    )
+    return [_comment_response(c) for c in rows]
+
+
+@router.post("/applications/{app_id}/comments", response_model=ApplicationCommentResponse, status_code=201)
+def create_application_comment(
+    app_id: int,
+    body: ApplicationCommentCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    app = db.query(Application).filter(Application.id == app_id).first()
+    if not app:
+        raise HTTPException(status_code=404, detail="Candidature introuvable")
+    mids = json.dumps(body.mentioned_user_ids) if body.mentioned_user_ids else None
+    c = ApplicationComment(
+        application_id=app_id,
+        user_id=current_user.id,
+        body=body.body.strip(),
+        mentioned_user_ids=mids,
+    )
+    db.add(c)
+    db.flush()
+    log_activity(
+        db,
+        current_user.id,
+        "application",
+        app_id,
+        "comment_added",
+        {"preview": body.body.strip()[:160]},
+    )
+    db.commit()
+    db.refresh(c)
+    c = db.query(ApplicationComment).options(joinedload(ApplicationComment.user)).filter(ApplicationComment.id == c.id).first()
+    return _comment_response(c)
 
 
 # ---- Interviews ----

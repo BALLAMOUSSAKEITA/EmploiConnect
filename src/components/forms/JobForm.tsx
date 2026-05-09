@@ -41,7 +41,7 @@ export default function JobForm({ initial, onSuccess, onCancel }: Props) {
       ...initial,
       company_id: initial.company?.id || initial.company_id,
       deadline: initial.deadline ? new Date(initial.deadline).toISOString().split("T")[0] : undefined,
-    } : {},
+    } : { status: "open", job_type: "CDI" },
   });
 
   useEffect(() => {

@@ -6,9 +6,10 @@ import { LoadingSpinner, Badge } from "@/components/ui";
 import { Button } from "@/components/ui/Forms";
 import { Modal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toaster";
-import { cn, formatDate, formatDateTime, formatCurrency, STATUS_COLORS } from "@/lib/utils";
-import { ArrowLeft, MapPin, Clock, Building2, Users, Plus, User, Calendar } from "lucide-react";
+import { cn, formatDate, formatCurrency, STATUS_COLORS } from "@/lib/utils";
+import { ArrowLeft, MapPin, Clock, Building2, Users, Plus, Copy, FileStack } from "lucide-react";
 import ApplicationForm from "@/components/forms/ApplicationForm";
+import ActivityFeed from "@/components/recruitment/ActivityFeed";
 
 export default function JobDetailPage() {
   const { id } = useParams();
@@ -17,6 +18,10 @@ export default function JobDetailPage() {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAppForm, setShowAppForm] = useState(false);
+  const [showTemplateModal, setShowTemplateModal] = useState(false);
+  const [templateName, setTemplateName] = useState("");
+  const [savingTemplate, setSavingTemplate] = useState(false);
+  const [dupLoading, setDupLoading] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -28,6 +33,38 @@ export default function JobDetailPage() {
       setApplications(appRes.data);
     }).finally(() => setLoading(false));
   }, [id]);
+
+  const duplicateJob = async () => {
+    setDupLoading(true);
+    try {
+      const { data } = await api.post(`/jobs/${id}/duplicate`);
+      toast("Offre dupliquée (brouillon)", "success");
+      router.push(`/offres/${data.id}`);
+    } catch {
+      toast("Impossible de dupliquer l’offre", "error");
+    } finally {
+      setDupLoading(false);
+    }
+  };
+
+  const saveAsTemplate = async () => {
+    const name = templateName.trim();
+    if (!name) {
+      toast("Indiquez un nom pour le modèle", "error");
+      return;
+    }
+    setSavingTemplate(true);
+    try {
+      await api.post(`/job-templates/from-job/${id}`, { name });
+      toast("Modèle enregistré", "success");
+      setShowTemplateModal(false);
+      setTemplateName("");
+    } catch {
+      toast("Erreur à l’enregistrement", "error");
+    } finally {
+      setSavingTemplate(false);
+    }
+  };
 
   const updateStatus = async (appId: number, status: string) => {
     try {
@@ -62,9 +99,20 @@ export default function JobDetailPage() {
                   <span className="flex items-center gap-1"><Clock className="w-4 h-4" />{formatDate(job.created_at)}</span>
                 </div>
               </div>
-              <Badge className={cn(STATUS_COLORS[job.status] || "bg-gray-100")}>
-                {job.status}
-              </Badge>
+              <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                <Badge className={cn(STATUS_COLORS[job.status] || "bg-gray-100")}>
+                  {job.status}
+                </Badge>
+                <div className="flex flex-wrap gap-1.5 justify-end">
+                  <Button size="sm" variant="secondary" onClick={duplicateJob} disabled={dupLoading}>
+                    <Copy className="w-3.5 h-3.5" />
+                    {dupLoading ? "…" : "Dupliquer"}
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => { setTemplateName(`${job.title} — modèle`); setShowTemplateModal(true); }}>
+                    <FileStack className="w-3.5 h-3.5" /> Modèle
+                  </Button>
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-2 flex-wrap mb-5">
@@ -151,8 +199,31 @@ export default function JobDetailPage() {
               {job.deadline && <div className="flex justify-between"><span className="text-slate-500">Deadline</span><span className="font-medium">{formatDate(job.deadline)}</span></div>}
             </div>
           </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h4 className="font-semibold text-slate-700 mb-3">Historique d&apos;activité</h4>
+            <ActivityFeed kind="job" entityId={Number(id)} />
+          </div>
         </div>
       </div>
+
+      <Modal open={showTemplateModal} onClose={() => { setShowTemplateModal(false); setTemplateName(""); }} title="Enregistrer comme modèle" size="sm">
+        <div className="space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-slate-600 mb-1">Nom du modèle</label>
+            <input
+              value={templateName}
+              onChange={(e) => setTemplateName(e.target.value)}
+              className="w-full text-sm border border-slate-200 rounded-xl px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-500/30"
+              placeholder="ex. Développeur senior — standard"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="secondary" onClick={() => { setShowTemplateModal(false); setTemplateName(""); }}>Annuler</Button>
+            <Button onClick={saveAsTemplate} disabled={savingTemplate}>{savingTemplate ? "…" : "Enregistrer"}</Button>
+          </div>
+        </div>
+      </Modal>
 
       <Modal open={showAppForm} onClose={() => setShowAppForm(false)} title="Ajouter une candidature" size="md">
         <ApplicationForm

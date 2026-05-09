@@ -1,8 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from typing import List
 from app.database import get_db
 from app.models import User
-from app.schemas.user import UserCreate, UserResponse, Token, LoginRequest
+from app.schemas.user import UserCreate, UserResponse, Token, LoginRequest, UserMention
 from app.auth.jwt import verify_password, get_password_hash, create_access_token
 from app.auth.dependencies import get_current_user
 
@@ -44,3 +45,11 @@ def login(credentials: LoginRequest, db: Session = Depends(get_db)):
 @router.get("/me", response_model=UserResponse)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.get("/users", response_model=List[UserMention])
+def list_team_users(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    return db.query(User).filter(User.is_active == True).order_by(User.full_name).all()

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import api from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { Badge } from "@/components/ui";
-import { Briefcase, Users, Building2, CalendarDays, TrendingUp, UserCheck, ArrowUpRight, Plus, User } from "lucide-react";
+import { Briefcase, Users, Building2, CalendarDays, TrendingUp, UserCheck, ArrowUpRight, Plus, User, ClipboardList, Bell } from "lucide-react";
 import { cn, formatDate, STATUS_COLORS } from "@/lib/utils";
 import Link from "next/link";
 
@@ -12,6 +12,26 @@ interface Stats {
   total_companies: number; total_applications: number; hired_count: number;
   upcoming_interviews: number;
   recent_applications: Array<{ id: number; candidate_name: string; job_title: string; company_name: string; status: string; applied_at: string }>;
+}
+
+interface Reminders {
+  interviews_soon: Array<{
+    id: number;
+    scheduled_at: string | null;
+    candidate_name: string | null;
+    job_title: string | null;
+    application_id: number;
+  }>;
+  jobs_closing_soon: Array<{ id: number; title: string; deadline: string | null; company_name: string | null }>;
+  applications_stale: Array<{
+    id: number;
+    candidate_name: string | null;
+    job_title: string | null;
+    status: string;
+    applied_at: string | null;
+    candidate_id: number;
+    job_post_id: number;
+  }>;
 }
 
 const KPI_CONFIG = [
@@ -38,13 +58,28 @@ function SkeletonKPI() {
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
+  const [reminders, setReminders] = useState<Reminders>({
+    interviews_soon: [],
+    jobs_closing_soon: [],
+    applications_stale: [],
+  });
   const [loading, setLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
     api.get("/dashboard/stats")
-      .then((r) => setStats(r.data))
-      .finally(() => setLoading(false));
+      .then((r) => { if (!cancelled) setStats(r.data); })
+      .finally(() => { if (!cancelled) setLoading(false); });
+    api.get("/dashboard/reminders")
+      .then((r) => { if (!cancelled) setReminders(r.data); })
+      .catch(() => {
+        if (!cancelled) {
+          setReminders({ interviews_soon: [], jobs_closing_soon: [], applications_stale: [] });
+        }
+      });
+    return () => { cancelled = true; };
   }, []);
 
   const getGreeting = () => {
@@ -224,15 +259,75 @@ export default function DashboardPage() {
             )}
           </div>
 
+          {/* Rappels */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h3 className="font-semibold text-slate-800 text-sm mb-1 flex items-center gap-2">
+              <Bell className="w-4 h-4 text-amber-500" /> Rappels &amp; relances
+            </h3>
+            <p className="text-xs text-slate-400 mb-4">Entretiens proches, échéances, dossiers en attente</p>
+            <div className="space-y-4 max-h-72 overflow-y-auto text-xs">
+                <div>
+                  <p className="font-medium text-slate-600 mb-1.5">Entretiens (72 h)</p>
+                  {reminders.interviews_soon.length === 0 ? (
+                    <p className="text-slate-400">Rien de planifié</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {reminders.interviews_soon.map((x) => (
+                        <li key={x.id} className="text-slate-600">
+                          <Link href="/entretiens" className="text-indigo-600 hover:underline">{x.candidate_name}</Link>
+                          {" · "}{x.job_title}
+                          {x.scheduled_at && <span className="text-slate-400"> · {formatDate(x.scheduled_at)}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium text-slate-600 mb-1.5">Offres · échéance (7 j.)</p>
+                  {reminders.jobs_closing_soon.length === 0 ? (
+                    <p className="text-slate-400">Aucune échéance proche</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {reminders.jobs_closing_soon.map((x) => (
+                        <li key={x.id}>
+                          <Link href={`/offres/${x.id}`} className="text-indigo-600 hover:underline">{x.title}</Link>
+                          {x.deadline && <span className="text-slate-400"> · {formatDate(x.deadline)}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium text-slate-600 mb-1.5">Candidatures sans mouvement (7 j.)</p>
+                  {reminders.applications_stale.length === 0 ? (
+                    <p className="text-slate-400">Aucune alerte</p>
+                  ) : (
+                    <ul className="space-y-1">
+                      {reminders.applications_stale.slice(0, 8).map((x) => (
+                        <li key={x.id} className="text-slate-600">
+                          <Link href={`/candidats/${x.candidate_id}`} className="text-indigo-600 hover:underline">{x.candidate_name}</Link>
+                          {" → "}
+                          <Link href={`/offres/${x.job_post_id}`} className="hover:underline">{x.job_title}</Link>
+                          <span className="text-slate-400"> ({x.status})</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+                <Link href="/candidatures" className="inline-flex text-indigo-600 font-medium hover:underline">Voir le pipeline</Link>
+              </div>
+          </div>
+
           {/* Quick actions */}
           <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
             <h3 className="font-semibold text-slate-800 text-sm mb-3">Actions rapides</h3>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {[
-                { href: "/offres",      label: "Offres",      Icon: Briefcase,   bg: "hover:bg-blue-50   hover:border-blue-200   hover:text-blue-700" },
-                { href: "/candidats",   label: "Candidats",   Icon: User,        bg: "hover:bg-violet-50 hover:border-violet-200 hover:text-violet-700" },
-                { href: "/entreprises", label: "Entreprises", Icon: Building2,   bg: "hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700" },
-                { href: "/entretiens",  label: "Entretiens",  Icon: CalendarDays, bg: "hover:bg-orange-50  hover:border-orange-200  hover:text-orange-700" },
+                { href: "/offres",      label: "Offres",        Icon: Briefcase,    bg: "hover:bg-blue-50   hover:border-blue-200   hover:text-blue-700" },
+                { href: "/candidats",   label: "Candidats",     Icon: User,         bg: "hover:bg-violet-50 hover:border-violet-200 hover:text-violet-700" },
+                { href: "/candidatures", label: "Candidatures", Icon: ClipboardList, bg: "hover:bg-sky-50    hover:border-sky-200    hover:text-sky-700" },
+                { href: "/entreprises", label: "Entreprises",   Icon: Building2,    bg: "hover:bg-emerald-50 hover:border-emerald-200 hover:text-emerald-700" },
+                { href: "/entretiens",  label: "Entretiens",    Icon: CalendarDays, bg: "hover:bg-orange-50  hover:border-orange-200  hover:text-orange-700" },
               ].map((item) => {
                 const Icon = item.Icon;
                 return (

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Forms";
 import { Modal, ConfirmModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toaster";
 import { formatDate } from "@/lib/utils";
-import { Plus, Search, Eye, Pencil, Trash2, Phone, Mail, MapPin, FileText, Briefcase, Star } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, Phone, Mail, MapPin, FileText, Briefcase, Download } from "lucide-react";
 import CandidateForm from "@/components/forms/CandidateForm";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,15 @@ const AVATAR_GRADIENTS = [
 
 function getAvatarGradient(id: number) {
   return AVATAR_GRADIENTS[id % AVATAR_GRADIENTS.length];
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 export default function CandidatsPage() {
@@ -65,6 +74,18 @@ export default function CandidatsPage() {
     finally { setDeleting(false); }
   };
 
+  const exportCsv = async () => {
+    try {
+      const params: Record<string, string> = {};
+      if (search.trim()) params.search = search.trim();
+      const res = await api.get("/export/candidates.csv", { params, responseType: "blob" });
+      downloadBlob(res.data, "candidats.csv");
+      toast("Export téléchargé", "success");
+    } catch {
+      toast("Erreur d’export", "error");
+    }
+  };
+
   return (
     <div className="animate-fade-up">
       {/* Header */}
@@ -75,9 +96,14 @@ export default function CandidatsPage() {
             {candidates.length} talent{candidates.length !== 1 ? "s" : ""} dans votre vivier
           </p>
         </div>
-        <Button onClick={() => { setEditCand(null); setShowForm(true); }}>
-          <Plus className="w-4 h-4" /> Ajouter un candidat
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" onClick={exportCsv} title="Export CSV (filtre recherche appliqué côté serveur)">
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
+          <Button onClick={() => { setEditCand(null); setShowForm(true); }}>
+            <Plus className="w-4 h-4" /> Ajouter un candidat
+          </Button>
+        </div>
       </div>
 
       {/* Search */}

@@ -6,9 +6,10 @@ import { LoadingSpinner, Badge } from "@/components/ui";
 import { Button } from "@/components/ui/Forms";
 import { useToast } from "@/components/ui/Toaster";
 import { cn, formatDate, STATUS_COLORS } from "@/lib/utils";
-import { ArrowLeft, Phone, Mail, MapPin, Briefcase, FileText, Upload, Download, Plus, Calendar } from "lucide-react";
+import { ArrowLeft, Phone, Mail, MapPin, Briefcase, FileText, Upload, Plus, History } from "lucide-react";
 import { Modal } from "@/components/ui/Modal";
 import ApplicationForm from "@/components/forms/ApplicationForm";
+import ActivityFeed from "@/components/recruitment/ActivityFeed";
 
 export default function CandidateDetailPage() {
   const { id } = useParams();
@@ -169,6 +170,14 @@ export default function CandidateDetailPage() {
                 ))}
               </div>
             )}
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+            <h3 className="font-semibold text-slate-800 mb-3 text-sm flex items-center gap-2">
+              <History className="w-4 h-4 text-amber-500" aria-hidden />
+              Historique d&apos;activité
+            </h3>
+            <ActivityFeed kind="candidate" entityId={Number(id)} />
           </div>
         </div>
       </div>

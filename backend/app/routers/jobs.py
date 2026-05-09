@@ -6,6 +6,7 @@ from app.models import JobPost, Company, Application, JobStatus
 from app.schemas.job import JobPostCreate, JobPostUpdate, JobPostResponse
 from app.auth.dependencies import get_current_user
 from app.models import User
+from app.services.activity import log_activity
 
 router = APIRouter(prefix="/jobs", tags=["Offres d'emploi"])
 
@@ -57,6 +58,42 @@ def create_job(
     return _job_response(job, db, 0)
 
 
+@router.post("/{job_id}/duplicate", response_model=JobPostResponse, status_code=201)
+def duplicate_job(
+    job_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    src = db.query(JobPost).options(joinedload(JobPost.company)).filter(JobPost.id == job_id).first()
+    if not src:
+        raise HTTPException(status_code=404, detail="Offre introuvable")
+    copy = JobPost(
+        title=f"{src.title} (copie)",
+        description=src.description,
+        requirements=src.requirements,
+        responsibilities=src.responsibilities,
+        location=src.location,
+        city=src.city,
+        job_type=src.job_type,
+        salary_min=src.salary_min,
+        salary_max=src.salary_max,
+        salary_currency=src.salary_currency or "GNF",
+        experience_years=src.experience_years,
+        education_level=src.education_level,
+        status=JobStatus.draft,
+        deadline=None,
+        company_id=src.company_id,
+        created_by=current_user.id,
+    )
+    db.add(copy)
+    db.flush()
+    log_activity(db, current_user.id, "job_post", copy.id, "duplicated_from", {"source_job_id": job_id})
+    db.commit()
+    db.refresh(copy)
+    db.refresh(copy, ["company"])
+    return _job_response(copy, db, 0)
+
+
 @router.get("/{job_id}", response_model=JobPostResponse)
 def get_job(
     job_id: int,
@@ -81,6 +118,14 @@ def update_job(
         raise HTTPException(status_code=404, detail="Offre introuvable")
     for field, value in data.model_dump(exclude_unset=True).items():
         setattr(job, field, value)
+    log_activity(
+        db,
+        current_user.id,
+        "job_post",
+        job_id,
+        "updated",
+        {k: str(v) for k, v in data.model_dump(exclude_unset=True).items()},
+    )
     db.commit()
     db.refresh(job)
     return _job_response(job, db)

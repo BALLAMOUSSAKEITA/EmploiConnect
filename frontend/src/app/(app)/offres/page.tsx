@@ -1,12 +1,13 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import api from "@/lib/api";
 import { Badge } from "@/components/ui";
 import { Button } from "@/components/ui/Forms";
 import { Modal, ConfirmModal } from "@/components/ui/Modal";
 import { useToast } from "@/components/ui/Toaster";
 import { cn, formatDate, STATUS_COLORS, JOB_STATUS_LABELS } from "@/lib/utils";
-import { Plus, Search, Eye, Pencil, Trash2, MapPin, Clock, Building2, Users, LayoutGrid, List, Filter } from "lucide-react";
+import { Plus, Search, Eye, Pencil, Trash2, MapPin, Clock, Building2, Users, LayoutGrid, List, Filter, LayoutTemplate } from "lucide-react";
 import JobForm from "@/components/forms/JobForm";
 import Link from "next/link";
 
@@ -145,6 +146,7 @@ export default function OffresPage() {
   const [deleteJob, setDeleteJob] = useState<Job | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { toast } = useToast();
+  const router = useRouter();
 
   const fetchJobs = useCallback(async () => {
     setLoading(true);
@@ -189,9 +191,14 @@ export default function OffresPage() {
           <h2 className="text-xl font-semibold text-slate-800">Offres d'emploi</h2>
           <p className="text-sm text-slate-400 mt-0.5">{jobs.length} offre{jobs.length !== 1 ? "s" : ""} au total</p>
         </div>
-        <Button onClick={() => { setEditJob(null); setShowForm(true); }}>
-          <Plus className="w-4 h-4" /> Nouvelle offre
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" type="button" onClick={() => router.push("/offres/modeles")}>
+            <LayoutTemplate className="w-4 h-4" /> Modèles
+          </Button>
+          <Button onClick={() => { setEditJob(null); setShowForm(true); }}>
+            <Plus className="w-4 h-4" /> Nouvelle offre
+          </Button>
+        </div>
       </div>
 
       {/* Status tabs */}
