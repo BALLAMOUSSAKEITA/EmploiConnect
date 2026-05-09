@@ -98,6 +98,57 @@ def ensure_cv_files_bootstrap_columns() -> None:
             )
 
 
+def ensure_interviews_bootstrap_columns() -> None:
+    """Colonnes entretiens (scorecards, lien visio, etc.) absentes des vieilles BDD."""
+    try:
+        insp = inspect(engine)
+    except Exception:
+        return
+    if not insp.has_table("interviews"):
+        return
+    existing = {c["name"] for c in insp.get_columns("interviews")}
+    stmts: list[str] = []
+    if "meeting_link" not in existing:
+        stmts.append("ALTER TABLE interviews ADD COLUMN meeting_link TEXT")
+    if "feedback" not in existing:
+        stmts.append("ALTER TABLE interviews ADD COLUMN feedback TEXT")
+    if "scorecard_json" not in existing:
+        stmts.append("ALTER TABLE interviews ADD COLUMN scorecard_json TEXT")
+    if not stmts:
+        return
+    with engine.begin() as conn:
+        for sql in stmts:
+            conn.execute(text(sql))
+
+
+def ensure_applications_tracking_columns() -> None:
+    """UTM / referrer sur candidatures (page carrière) si table créée avant ces champs."""
+    try:
+        insp = inspect(engine)
+    except Exception:
+        return
+    if not insp.has_table("applications"):
+        return
+    existing = {c["name"] for c in insp.get_columns("applications")}
+    stmts: list[str] = []
+    for col, ddl in [
+        ("utm_source", "VARCHAR(255)"),
+        ("utm_medium", "VARCHAR(255)"),
+        ("utm_campaign", "VARCHAR(255)"),
+        ("utm_content", "VARCHAR(255)"),
+        ("utm_term", "VARCHAR(255)"),
+        ("referrer_url", "TEXT"),
+        ("landing_page", "VARCHAR(512)"),
+    ]:
+        if col not in existing:
+            stmts.append(f"ALTER TABLE applications ADD COLUMN {col} {ddl}")
+    if not stmts:
+        return
+    with engine.begin() as conn:
+        for sql in stmts:
+            conn.execute(text(sql))
+
+
 def normalize_null_is_active_flags() -> None:
     """Les lignes avec is_active NULL sont exclues par SQL (is_active = true). Les traiter comme actives."""
     try:

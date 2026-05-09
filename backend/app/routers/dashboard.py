@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 from sqlalchemy import func
 from datetime import datetime, timedelta, timezone
 from app.database import get_db
@@ -96,8 +96,8 @@ def get_reminders(
     interv = (
         db.query(Interview)
         .options(
-            joinedload(Interview.application).joinedload(Application.candidate),
-            joinedload(Interview.application).joinedload(Application.job_post),
+            selectinload(Interview.application).selectinload(Application.candidate),
+            selectinload(Interview.application).selectinload(Application.job_post),
         )
         .filter(
             Interview.result == InterviewResult.pending,
