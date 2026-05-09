@@ -149,6 +149,27 @@ def ensure_applications_tracking_columns() -> None:
             conn.execute(text(sql))
 
 
+def ensure_job_posts_guide_columns() -> None:
+    """Guide d'entretien (JSON) sur offres et modèles — colonnes postérieures à la 1re BDD."""
+    try:
+        insp = inspect(engine)
+    except Exception:
+        return
+    with engine.begin() as conn:
+        if insp.has_table("job_posts"):
+            cols = {c["name"] for c in insp.get_columns("job_posts")}
+            if "interview_guide_json" not in cols:
+                conn.execute(
+                    text("ALTER TABLE job_posts ADD COLUMN interview_guide_json TEXT")
+                )
+        if insp.has_table("job_templates"):
+            cols = {c["name"] for c in insp.get_columns("job_templates")}
+            if "interview_guide_json" not in cols:
+                conn.execute(
+                    text("ALTER TABLE job_templates ADD COLUMN interview_guide_json TEXT")
+                )
+
+
 def normalize_null_is_active_flags() -> None:
     """Les lignes avec is_active NULL sont exclues par SQL (is_active = true). Les traiter comme actives."""
     try:
